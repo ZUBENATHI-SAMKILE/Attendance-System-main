@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="marks-container">
+    <h2 class="page-title"><i class="fa fa-marker"></i> Allocate Attendance Marks</h2>
+
+    <!-- Module Selection Form -->
+    <div class="card">
+        <div class="card-body">
+            <form method="POST" action="">
+                {{ form.hidden_tag() }}
+                <div class="form-group">
+                    {{ form.module_id.label(class="form-label") }}
+                    {{ form.module_id(class="form-select") }}
+                </div>
+                <div class="form-actions">
+                    {{ form.submit(class="btn-primary") }}
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {% if module %}
+    <!-- Attendance Marks Table -->
+    <div class="card mt-4">
+        <div class="card-header">
+            <h4><i class="fa fa-book"></i> Marks for {{ module.module_code }} - {{ module.module_name }} (Total Sessions: {{ total_sessions }})</h4>
+        </div>
+        <div class="card-body">
+            {% if students_data %}
+            <div class="table-wrapper">
+                <table class="marks-table">
+                    <thead>
+                        <tr>
+                            <th>Student Number</th>
+                            <th>Name</th>
+                            <th>Present</th>
+                            <th>Percentage</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for data in students_data %}
+                        <tr class="{% if data.warning %}low-attendance{% endif %}">
+                            <td>{{ data.student_number }}</td>
+                            <td>{{ data.name }}</td>
+                            <td>{{ data.present }}</td>
+                            <td>{{ data.percent }}% {% if data.warning %}<span class="warning-text">(Low Attendance Warning)</span>{% endif %}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p>No students enrolled or no sessions found.</p>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+/* Container */
+.marks-container {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Page Title */
+.page-title {
+    font-size: 1.8rem;
+    font-weight: 600;
+    color: #2c3e50;
+    margin-bottom: 20px;
+}
+
+/* Card */
+.card {
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+    overflow: hidden;
+}
+
+.card-header {
+    background-color: #34495e;
+    color: white;
+    padding: 12px 15px;
+    font-weight: 600;
+    font-size: 1rem;
+}
+
+.card-body {
+    padding: 15px;
+}
+
+/* Form */
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 500;
+    color: #2c3e50;
+}
+
+.form-select {
+    width: 100%;
+    padding: 8px 10px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    font-size: 0.95rem;
+}
+
+/* Buttons */
+.form-actions {
+    margin-top: 10px;
+    text-align: right;
+}
+
+.btn-primary {
+    background-color: #2980b9;
+    color: white;
+    padding: 8px 15px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: background-color 0.2s;
+}
+
+.btn-primary:hover {
+    background-color: #1c5980;
+}
+
+/* Table */
+.table-wrapper {
+    overflow-x: auto;
+}
+
+.marks-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.95rem;
+}
+
+.marks-table th, .marks-table td {
+    border: 1px solid #ddd;
+    padding: 10px;
+    text-align: center;
+}
+
+.marks-table th {
+    background-color: #2c3e50;
+    color: white;
+    font-weight: 600;
+}
+
+.low-attendance {
+    background-color: #f8d7da;
+}
+
+.warning-text {
+    color: #c0392b;
+    font-weight: 600;
+    font-size: 0.85rem;
+}
+</style>
+{% endblock %}

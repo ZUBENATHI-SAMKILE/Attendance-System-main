@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+
+{% block title %}Lecturer Assignments{% endblock %}
+
+{% block content %}
+<div class="assignments-container">
+    <h2 class="page-title">
+        <i class="fas fa-chalkboard-teacher"></i> Assignments for Lecturer: {{ lecturer.full_name }} ({{ lecturer.username }})
+    </h2>
+
+    {% if modules %}
+    <table class="modules-table">
+        <thead>
+            <tr>
+                <th>Module Code</th>
+                <th>Module Name</th>
+                <th>Description</th>
+                <th>Assigned Date</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for module in modules %}
+            <tr>
+                <td>{{ module.module_code }}</td>
+                <td>{{ module.module_name }}</td>
+                <td>{{ module.description or 'N/A' }}</td>
+                <td>
+                    {{ module.assignments | selectattr('lecturer_id', 'equalto', lecturer.user_id) 
+                        | first 
+                        | attr('assigned_date') 
+                        | default('N/A') }}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="no-modules"><i class="fas fa-exclamation-circle"></i> This lecturer is not assigned to any modules.</p>
+    {% endif %}
+
+    <div class="back-btn">
+        <a href="{{ url_for('admin_list_users') }}" class="btn-primary">
+            <i class="fas fa-arrow-left"></i> Back to Users
+        </a>
+    </div>
+</div>
+
+<style>
+.assignments-container {
+    max-width: 900px;
+    margin: 40px auto;
+    padding: 25px;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.page-title {
+    text-align: center;
+    margin-bottom: 25px;
+    color: #1976d2;
+    font-size: 1.8rem;
+}
+
+.no-modules {
+    text-align: center;
+    color: #777;
+    font-style: italic;
+    margin: 25px 0;
+}
+
+.back-btn {
+    text-align: center;
+    margin-top: 25px;
+}
+
+/* Table styling */
+.modules-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+}
+
+.modules-table th,
+.modules-table td {
+    padding: 12px 15px;
+    border: 1px solid #ddd;
+    font-size: 14px;
+    text-align: left;
+}
+
+.modules-table th {
+    background: linear-gradient(135deg, #1976d2 0%, #42a5f5 100%);
+    color: #fff;
+    font-weight: 600;
+}
+
+.modules-table tr:nth-child(even) {
+    background: #f9f9f9;
+}
+
+/* Button styling */
+.btn-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #1976d2, #42a5f5);
+    color: #fff;
+    padding: 10px 18px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-size: 14px;
+    transition: all 0.3s ease;
+}
+.btn-primary i {
+    margin-right: 8px;
+}
+.btn-primary:hover {
+    transform: translateY(-2px);
+    background: linear-gradient(135deg, #1565c0, #1e88e5);
+}
+</style>
+
+<!-- Font Awesome -->
+<script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+{% endblock %}

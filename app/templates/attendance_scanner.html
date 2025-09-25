@@ -1,0 +1,246 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="scanner-container">
+    <h2 class="page-title"><i class="fa fa-camera"></i> Attendance Face Scanner</h2>
+
+    <!-- Today's Classes Card -->
+    <div class="card">
+        <div class="card-header">
+            <h4><i class="fa fa-calendar-check"></i> Today's Active Classes ({{ classes_data|length }})</h4>
+        </div>
+        <div class="card-body">
+            {% if classes_data %}
+            <div class="classes-grid">
+                {% for class_data in classes_data %}
+                {% set class = class_data.class_session %}
+                <div class="class-card {% if class_data.session_active %}live{% else %}upcoming{% endif %}">
+                    <h5 class="class-title">
+                        {{ class.module.module_code }} - {{ class.module.module_name }}
+                        {% if class_data.session_active %}
+                        <span class="badge live-badge"><i class="fa fa-circle"></i> Live Now</span>
+                        {% else %}
+                        <span class="badge upcoming-badge"><i class="fa fa-clock"></i> Upcoming</span>
+                        {% endif %}
+                    </h5>
+                    <p class="class-info">
+                        <strong>Type:</strong> {{ class.class_type.value|title }}<br>
+                        <strong>Time:</strong> {{ class.start_time.strftime('%H:%M') }} - {{ class.end_time.strftime('%H:%M') }}<br>
+                        <strong>Date:</strong> {{ class.class_date }}<br>
+                        <strong>Location:</strong> {{ class.location or 'Not specified' }}
+                    </p>
+                    <small class="text-muted stats">
+                        Enrolled: {{ class_data.enrollment_count }} | 
+                        Facial Data: {{ class_data.facial_data_count }} | 
+                        Attendance Marked: {{ class_data.attendance_count }}
+                    </small>
+                    <a href="{{ url_for('browser_face_scan', class_id=class.class_id) }}" class="btn {% if class_data.session_active %}btn-live{% else %}btn-upcoming{% endif %}">
+                        <i class="fa fa-camera"></i> 
+                        {% if class_data.session_active %}Start Scanner{% else %}Prepare Scanner{% endif %}
+                    </a>
+                    <small class="status-text {% if class_data.session_active %}text-live{% else %}text-upcoming{% endif %}">
+                        {% if class_data.session_active %}
+                        <i class="fa fa-circle"></i> Session active - scanner ready
+                        {% else %}
+                        <i class="fa fa-clock"></i> Starts at {{ class.start_time.strftime('%H:%M') }}
+                        {% endif %}
+                    </small>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="no-classes">
+                <i class="fa fa-calendar-times fa-3x text-muted"></i>
+                <h4>No Active Classes Today</h4>
+                <p>You don't have any active or upcoming classes scheduled for today.</p>
+                <a href="{{ url_for('lecturer_calendar') }}" class="btn btn-outline"><i class="fa fa-calendar"></i> View Calendar</a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+/* Container */
+.scanner-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Page Title */
+.page-title {
+    font-size: 1.8rem;
+    font-weight: 600;
+    color: #2c3e50;
+    margin-bottom: 20px;
+}
+
+/* Card */
+.card {
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+    overflow: hidden;
+}
+
+.card-header {
+    background-color: #34495e;
+    color: white;
+    padding: 12px 15px;
+    font-weight: 600;
+    font-size: 1rem;
+}
+
+.card-body {
+    padding: 15px;
+}
+
+/* Classes Grid */
+.classes-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+.class-card {
+    background-color: white;
+    border-radius: 8px;
+    border: 2px solid #2980b9;
+    flex: 1 1 45%;
+    padding: 15px;
+    min-width: 280px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.class-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.live {
+    border-color: #27ae60;
+}
+
+.upcoming {
+    border-color: #2980b9;
+}
+
+/* Badges */
+.badge {
+    padding: 4px 8px;
+    border-radius: 5px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.live-badge {
+    background-color: #27ae60;
+    color: white;
+    float: right;
+}
+
+.upcoming-badge {
+    background-color: #2980b9;
+    color: white;
+    float: right;
+}
+
+/* Buttons */
+.btn {
+    margin-top: 10px;
+    text-decoration: none;
+    text-align: center;
+    padding: 8px 12px;
+    border-radius: 5px;
+    font-weight: 500;
+    transition: background-color 0.2s ease;
+    color: white;
+}
+
+.btn-live {
+    background-color: #27ae60;
+}
+
+.btn-live:hover {
+    background-color: #1e8449;
+}
+
+.btn-upcoming {
+    background-color: #2980b9;
+}
+
+.btn-upcoming:hover {
+    background-color: #1c5980;
+}
+
+.btn-outline {
+    border: 1px solid #2980b9;
+    color: #2980b9;
+    background-color: transparent;
+}
+
+.btn-outline:hover {
+    background-color: #2980b9;
+    color: white;
+}
+
+/* Class Info */
+.class-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.class-info {
+    font-size: 0.95rem;
+    margin: 10px 0;
+}
+
+.stats {
+    font-size: 0.8rem;
+    margin-bottom: 10px;
+    color: #7f8c8d;
+}
+
+/* Status Text */
+.status-text {
+    font-size: 0.85rem;
+}
+
+.text-live {
+    color: #27ae60;
+}
+
+.text-upcoming {
+    color: #2980b9;
+}
+
+/* No Classes */
+.no-classes {
+    text-align: center;
+    padding: 40px 20px;
+    color: #7f8c8d;
+}
+
+.no-classes h4 {
+    margin: 15px 0;
+}
+
+/* Pulse animation for live badge */
+.pulse {
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+</style>
+{% endblock %}

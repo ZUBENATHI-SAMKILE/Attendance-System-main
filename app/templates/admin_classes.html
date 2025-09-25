@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% block title %}Manage Classes{% endblock %}
+{% block content %}
+<h1>Manage Classes</h1>
+<a href="{{ url_for('admin_add_class') }}" class="btn btn-primary-custom">
+    <i class="fa-solid fa-plus"></i> Add Class
+</a>
+
+<table class="table-custom">
+    <thead>
+        <tr>
+            <th>Module</th>
+            <th>Lecturer</th>
+            <th>Type</th>
+            <th>Date</th>
+            <th>Start Time</th>
+            <th>End Time</th>
+            <th>Location</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for class in classes %}
+        <tr>
+            <td>{{ class.module.module_code }}</td>
+            <td>{{ class.lecturer.full_name }}</td>
+            <td>{{ class.class_type.value }}</td>
+            <td>{{ class.class_date }}</td>
+            <td>{{ class.start_time }}</td>
+            <td>{{ class.end_time }}</td>
+            <td>{{ class.location }}</td>
+            <td>
+                <a href="{{ url_for('admin_edit_class', class_id=class.class_id) }}" class="btn btn-edit">
+                    <i class="fa-solid fa-pen-to-square"></i> Edit
+                </a>
+                <form method="POST" action="{{ url_for('admin_delete_class', class_id=class.class_id) }}" style="display:inline;">
+                    <button type="submit" class="btn btn-delete" onclick="return confirm('Are you sure?');">
+                        <i class="fa-solid fa-trash"></i> Delete
+                    </button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<style>
+/* Table Styles */
+.table-custom {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+.table-custom th, .table-custom td {
+    border: 1px solid #ddd;
+    padding: 10px;
+    text-align: left;
+}
+.table-custom th {
+    background-color: #1976d2;
+    color: white;
+}
+
+/* Buttons */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    border: none;
+    transition: all 0.3s ease;
+}
+.btn i {
+    font-size: 0.9rem;
+}
+
+/* Add */
+.btn-primary-custom {
+    background: linear-gradient(135deg, #1976d2 0%, #42a5f5 100%);
+    color: white;
+    box-shadow: 0 4px 10px rgba(25, 118, 210, 0.2);
+    text-decoration: none;
+}
+.btn-primary-custom:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(25, 118, 210, 0.3);
+}
+
+/* Edit */
+.btn-edit {
+    background-color: #4caf50;
+    color: white;
+}
+.btn-edit:hover {
+    background-color: #45a049;
+}
+
+/* Delete */
+.btn-delete {
+    background-color: #f44336;
+    color: white;
+}
+.btn-delete:hover {
+    background-color: #e53935;
+}
+
+/* Font Awesome fallback using internal CSS (basic icons) */
+@font-face {
+    font-family: 'Font Awesome 6 Free';
+    font-style: normal;
+    font-weight: 900;
+    src: url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/webfonts/fa-solid-900.woff2') format('woff2');
+}
+.fa-solid { font-family: 'Font Awesome 6 Free'; font-weight: 900; }
+</style>
+{% endblock %}

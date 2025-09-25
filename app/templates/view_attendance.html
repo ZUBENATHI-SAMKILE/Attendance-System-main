@@ -1,0 +1,191 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="attendance-container">
+    <h2 class="page-title"><i class="fa fa-list-check"></i> View Attendance</h2>
+
+    <!-- Filter Form -->
+    <div class="card attendance-card">
+        <div class="card-body">
+            <form method="POST" action="">
+                {{ form.hidden_tag() }}
+                <div class="form-grid">
+                    <div class="form-group">
+                        {{ form.class_id.label(class="form-label") }}
+                        {{ form.class_id(class="form-input") }}
+                    </div>
+                    <div class="form-group">
+                        {{ form.student_number.label(class="form-label") }}
+                        {{ form.student_number(class="form-input") }}
+                    </div>
+                    <div class="form-group">
+                        {{ form.date_from.label(class="form-label") }}
+                        {{ form.date_from(class="form-input", type="date") }}
+                    </div>
+                    <div class="form-group">
+                        {{ form.date_to.label(class="form-label") }}
+                        {{ form.date_to(class="form-input", type="date") }}
+                    </div>
+                </div>
+                <div class="form-actions">
+                    {{ form.submit(class="btn-submit") }}
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Attendance Table -->
+    <div class="card attendance-card mt-4">
+        <div class="card-header">
+            <h4><i class="fa fa-table"></i> Attendance Records</h4>
+        </div>
+        <div class="card-body">
+            {% if attendances %}
+            <div class="table-responsive">
+                <table class="attendance-table">
+                    <thead>
+                        <tr>
+                            <th>Student</th>
+                            <th>Class</th>
+                            <th>Status</th>
+                            <th>Timestamp</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for att in attendances %}
+                        <tr>
+                            <td>{{ att.student.full_name }} ({{ att.student.student_number }})</td>
+                            <td>{{ att.class_session.module.module_code }} - {{ att.class_session.class_type.value }} on {{ att.class_session.class_date }}</td>
+                            <td>{{ att.attendance_status.value }}</td>
+                            <td>{{ att.timestamp }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="no-records"><i class="fa fa-exclamation-circle"></i> No attendance records found.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+/* Container */
+.attendance-container {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Titles */
+.page-title {
+    font-size: 1.8rem;
+    font-weight: 600;
+    color: #2c3e50;
+    margin-bottom: 20px;
+}
+
+.card {
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.1);
+}
+
+.card-header {
+    font-weight: 600;
+    font-size: 1.2rem;
+    margin-bottom: 10px;
+    color: #34495e;
+    border-bottom: 1px solid #ddd;
+    padding-bottom: 10px;
+}
+
+/* Form Grid */
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 20px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.form-label {
+    font-weight: 500;
+    margin-bottom: 5px;
+}
+
+.form-input {
+    padding: 10px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    font-size: 0.95rem;
+}
+
+/* Submit button */
+.btn-submit {
+    padding: 10px 20px;
+    background-color: #2980b9;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.btn-submit:hover {
+    background-color: #1c5980;
+}
+
+.form-actions {
+    margin-top: 20px;
+    text-align: right;
+}
+
+/* Attendance Table */
+.table-responsive {
+    overflow-x: auto;
+}
+
+.attendance-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.attendance-table th, .attendance-table td {
+    padding: 12px 15px;
+    border: 1px solid #ddd;
+    text-align: left;
+}
+
+.attendance-table th {
+    background-color: #34495e;
+    color: white;
+    font-weight: 600;
+}
+
+.attendance-table tr:nth-child(even) {
+    background-color: #ecf0f1;
+}
+
+.attendance-table tr:hover {
+    background-color: #dcdde1;
+}
+
+/* No records message */
+.no-records {
+    color: #c0392b;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+</style>
+{% endblock %}

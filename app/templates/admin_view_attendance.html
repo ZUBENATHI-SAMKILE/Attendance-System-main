@@ -1,0 +1,207 @@
+{% extends "base.html" %}
+{% block title %}View All Attendance{% endblock %}
+
+{% block content %}
+<div class="attendance-container">
+
+    <!-- Page Title -->
+    <div class="header-section">
+        <h1><i class="fa-solid fa-clipboard-check"></i> Attendance Records</h1>
+        <p class="subtitle">Filter and view all student attendance records</p>
+    </div>
+
+    <!-- Filter Form -->
+    <div class="card">
+        <div class="card-header">
+            <i class="fa-solid fa-filter"></i> Filter Records
+        </div>
+        <div class="card-body">
+            <form method="POST" class="form-grid">
+                {{ form.hidden_tag() }}
+                
+                <div class="form-group">
+                    {{ form.class_id.label }}
+                    {{ form.class_id }}
+                </div>
+
+                <div class="form-group">
+                    {{ form.student_number.label }}
+                    {{ form.student_number }}
+                </div>
+
+                <div class="form-group">
+                    {{ form.date_from.label }}
+                    {{ form.date_from }}
+                </div>
+
+                <div class="form-group">
+                    {{ form.date_to.label }}
+                    {{ form.date_to }}
+                </div>
+
+                <div class="form-actions">
+                    {{ form.submit }}
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Attendance Table -->
+    <div class="card">
+        <div class="card-header">
+            <i class="fa-solid fa-list"></i> Attendance Results ({{ attendances|length }})
+        </div>
+        <div class="card-body">
+            <table class="attendance-table">
+                <thead>
+                    <tr>
+                        <th><i class="fa-solid fa-user"></i> Student</th>
+                        <th><i class="fa-solid fa-book-open"></i> Class</th>
+                        <th><i class="fa-solid fa-circle-check"></i> Status</th>
+                        <th><i class="fa-solid fa-clock"></i> Timestamp</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for att in attendances %}
+                    <tr>
+                        <td>{{ att.student.full_name }}</td>
+                        <td>{{ att.class_session.module.module_code }} - {{ att.class_session.class_date }}</td>
+                        <td>
+                            {% if att.attendance_status.value == "Present" %}
+                                <span class="badge success"><i class="fa-solid fa-check"></i> Present</span>
+                            {% else %}
+                                <span class="badge danger"><i class="fa-solid fa-xmark"></i> Absent</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ att.timestamp.strftime('%Y-%m-%d %H:%M') }}</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="4" class="empty-message">
+                            <i class="fa-solid fa-circle-exclamation"></i> No attendance records found
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<style>
+/* Page Container */
+.attendance-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 25px;
+}
+
+/* Header */
+.header-section {
+    text-align: center;
+    margin-bottom: 30px;
+}
+.header-section h1 {
+    font-size: 2rem;
+    color: #2c3e50;
+}
+.subtitle {
+    color: #7f8c8d;
+}
+
+/* Card */
+.card {
+    background: #fff;
+    border-radius: 12px;
+    margin-bottom: 25px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    overflow: hidden;
+}
+.card-header {
+    background: #1976d2;
+    color: #fff;
+    padding: 12px 18px;
+    font-weight: bold;
+}
+.card-body {
+    padding: 20px;
+}
+
+/* Form Grid */
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    gap: 20px;
+}
+.form-group label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: #333;
+}
+.form-group select,
+.form-group input {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+}
+.form-actions {
+    grid-column: 1 / -1;
+    text-align: right;
+}
+.form-actions input[type="submit"] {
+    background: #1976d2;
+    color: #fff;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+}
+.form-actions input[type="submit"]:hover {
+    background: #1565c0;
+}
+
+/* Table */
+.attendance-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+.attendance-table th,
+.attendance-table td {
+    padding: 12px;
+    border-bottom: 1px solid #eee;
+    text-align: left;
+}
+.attendance-table thead {
+    background: #f5f5f5;
+}
+.attendance-table th {
+    color: #1976d2;
+}
+
+/* Badges */
+.badge {
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: bold;
+    color: #fff;
+}
+.badge.success {
+    background: #27ae60;
+}
+.badge.danger {
+    background: #e74c3c;
+}
+
+/* Empty message */
+.empty-message {
+    text-align: center;
+    color: #7f8c8d;
+    padding: 15px;
+    font-style: italic;
+}
+</style>
+{% endblock %}

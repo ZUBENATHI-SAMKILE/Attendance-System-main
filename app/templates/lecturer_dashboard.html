@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+
+{% block content %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+<div class="dashboard">
+
+    <!-- Header -->
+    <header class="dashboard_header">
+        <h1>Lecturer Dashboard</h1>
+        <p>Welcome, {{ current_user.full_name }}. You are logged in as a lecturer.</p>
+    </header>
+
+    <!-- Stats Section -->
+    <section class="dashboard_stats">
+        <div class="stat_card stat_classes">
+            <div class="stat_icon"><i class="fa fa-chalkboard-teacher"></i></div>
+            <div class="stat_content">
+                <h3>Total Classes</h3>
+                <p class="stat_value">{{ total_classes }}</p>
+            </div>
+        </div>
+        <div class="stat_card stat_students">
+            <div class="stat_icon"><i class="fa fa-user-graduate"></i></div>
+            <div class="stat_content">
+                <h3>Total Students</h3>
+                <p class="stat_value">{{ total_students }}</p>
+            </div>
+        </div>
+        <div class="stat_card stat_attendance">
+            <div class="stat_icon"><i class="fa fa-chart-line"></i></div>
+            <div class="stat_content">
+                <h3>Average Attendance</h3>
+                <p class="stat_value">{{ avg_attendance }}%</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Actions Section -->
+    <section class="dashboard_actions">
+        <div class="action_card">
+            <i class="fa fa-chalkboard-teacher action_icon"></i>
+            <h4>View Attendance</h4>
+            <a href="{{ url_for('lecturer_view_attendance') }}" class="action_btn">Go</a>
+        </div>
+        <div class="action_card">
+            <i class="fa fa-pen-nib action_icon"></i>
+            <h4>Allocate Marks</h4>
+            <a href="{{ url_for('lecturer_allocate_marks') }}" class="action_btn">Allocate</a>
+        </div>
+        <div class="action_card">
+            <i class="fa fa-calendar-alt action_icon"></i>
+            <h4>Calendar View</h4>
+            <a href="{{ url_for('lecturer_calendar') }}" class="action_btn">View</a>
+        </div>
+        <div class="action_card">
+            <i class="fa fa-camera action_icon"></i>
+            <h4>Attendance Scanner</h4>
+            <a href="{{ url_for('lecturer_attendance_scanner') }}" class="action_btn">Open Scanner</a>
+        </div>
+    </section>
+</div>
+
+<style>
+* { box-sizing: border-box; }
+body {
+    margin: 0;
+    padding: 0;
+    background-color: #e9ecef; /* light neutral background */
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    overflow-x: hidden;
+}
+.dashboard { width: 100%; min-height: 100vh; padding: 30px 50px; }
+
+/* Header */
+.dashboard_header { text-align: center; margin-bottom: 40px; }
+.dashboard_header h1 { font-size: 2rem; color: #2c3e50; font-weight: 700; }
+.dashboard_header p { font-size: 1rem; color: #495057; }
+
+/* Stats Section */
+.dashboard_stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    margin-bottom: 50px;
+}
+.stat_card {
+    border-radius: 12px;
+    padding: 25px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+    transition: transform 0.3s, box-shadow 0.3s;
+}
+.stat_card:hover { transform: translateY(-5px); box-shadow: 0 10px 25px rgba(0,0,0,0.12); }
+
+.stat_classes { background-color: #3498db; color: #fff; }
+.stat_students { background-color: #2ecc71; color: #fff; }
+.stat_attendance { background-color: #f39c12; color: #fff; }
+
+.stat_icon { font-size: 2.5rem; }
+.stat_content h3 { margin: 0; font-size: 1.1rem; }
+.stat_value { font-size: 2rem; font-weight: 700; margin-top: 5px; }
+
+/* Actions Section */
+.dashboard_actions {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 25px;
+}
+.action_card {
+    border-radius: 12px;
+    padding: 30px 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    background-color: #ffffff;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+    transition: transform 0.3s, box-shadow 0.3s, background 0.3s;
+}
+.action_card:hover { transform: translateY(-5px); box-shadow: 0 10px 25px rgba(0,0,0,0.12); background-color: #f1f3f5; }
+
+.action_icon { font-size: 2.5rem; color: #2980b9; margin-bottom: 15px; }
+.action_card h4 { margin-bottom: 15px; color: #2c3e50; font-size: 1.1rem; }
+.action_btn {
+    padding: 10px 20px;
+    border-radius: 6px;
+    background-color: #2980b9;
+    color: #fff;
+    text-decoration: none;
+    font-weight: 600;
+    transition: background 0.3s;
+}
+.action_btn:hover { background-color: #1c5980; }
+
+/* Responsive */
+@media(max-width:1200px){ .dashboard_stats, .dashboard_actions { grid-template-columns: repeat(2, 1fr); } }
+@media(max-width:768px){ .dashboard_stats, .dashboard_actions { grid-template-columns: 1fr; } }
+</style>
+{% endblock %}

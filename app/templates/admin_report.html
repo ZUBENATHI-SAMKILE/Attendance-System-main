@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+{% block title %}Generate Report{% endblock %}
+{% block content %}
+<div class="report-container">
+    <h1 class="page-title">Generate Attendance Report</h1>
+
+    <form method="POST" class="report-form">
+        {{ form.hidden_tag() }}
+
+        <div class="form-group">
+            {{ form.type.label(class="form-label") }}
+            {{ form.type(class="form-input") }}
+        </div>
+
+        <div class="form-group">
+            {{ form.class_id.label(class="form-label") }}
+            {{ form.class_id(class="form-input") }}
+        </div>
+
+        <div class="form-group">
+            {{ form.student_id.label(class="form-label") }}
+            {{ form.student_id(class="form-input") }}
+        </div>
+
+        <div class="form-group">
+            {{ form.date_from.label(class="form-label") }}
+            {{ form.date_from(class="form-input") }}
+        </div>
+
+        <div class="form-group">
+            {{ form.date_to.label(class="form-label") }}
+            {{ form.date_to(class="form-input") }}
+        </div>
+
+        {{ form.submit(class="btn-submit") }}
+    </form>
+
+    {% if report_data %}
+    <div class="report-results">
+        <h2 class="section-title">Report Results</h2>
+        <a href="?export=csv" class="btn-secondary">Export to CSV</a>
+
+        <table class="report-table">
+            <thead>
+                <tr>
+                    <th>Student</th>
+                    <th>Class</th>
+                    <th>Status</th>
+                    <th>Timestamp</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for att in report_data %}
+                <tr>
+                    <td>{{ att.student.full_name }}</td>
+                    <td>{{ att.class_session.module.module_code }} - {{ att.class_session.class_date }}</td>
+                    <td>{{ att.attendance_status.value }}</td>
+                    <td>{{ att.timestamp }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+</div>
+<style> 
+    .report-container {
+    max-width: 800px;
+    margin: 40px auto;
+    padding: 20px;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.page-title {
+    text-align: center;
+    margin-bottom: 20px;
+    color: #333;
+}
+
+.report-form .form-group {
+    margin-bottom: 15px;
+}
+
+.form-label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 600;
+    color: #444;
+}
+
+.form-input {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 14px;
+}
+
+.btn-submit {
+    display: inline-block;
+    background: #4CAF50;
+    color: #fff;
+    padding: 10px 18px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    margin-top: 10px;
+}
+.btn-submit:hover {
+    background: #45a049;
+}
+
+.btn-secondary {
+    display: inline-block;
+    background: #2196F3;
+    color: #fff;
+    padding: 8px 14px;
+    border-radius: 6px;
+    text-decoration: none;
+    font-size: 13px;
+    margin-bottom: 15px;
+}
+.btn-secondary:hover {
+    background: #1976D2;
+}
+
+.report-results {
+    margin-top: 30px;
+}
+
+.report-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+}
+
+.report-table th, .report-table td {
+    padding: 10px;
+    border: 1px solid #ddd;
+    text-align: left;
+}
+
+.report-table th {
+    background: #f4f4f4;
+}
+
+</style>
+{% endblock %}

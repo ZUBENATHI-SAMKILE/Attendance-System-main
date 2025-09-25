@@ -1,0 +1,151 @@
+
+{% extends "base.html" %}
+    
+    {% block content %}
+    <div class="home_container">
+        <h1 class="home_title">Welcome to the Attendance System</h1>
+        <p class="home_subtitle">A modern system for tracking student attendance using facial recognition technology.</p>
+        <hr class="home_divider">
+        <p  class="home_description">Get started by logging in or creating a new account.</p>
+        {% if not current_user.is_authenticated %}
+
+
+        <div class="home_actions">
+            <a class="home_button" href="{{ url_for('login') }}" role="button">Login</a>
+            <a class="home_button" href="{{ url_for('signup') }}" role="button">Sign Up</a>
+        </div>
+        {% else %}
+        <div class="home_actions">
+            <p class="home_welcome">Welcome back, {{ current_user.full_name }}! You are logged in as a {{ current_user.role.value }}.</p>
+            {% if current_user.role.value == 'admin' %}
+            <a class="home_button" href="{{ url_for('admin_dashboard') }}" role="button">Go to Dashboard</a>
+            {% elif current_user.role.value == 'lecturer' %}
+            <a class="home_button"  href="{{ url_for('lecturer_dashboard') }}" role="button">Go to Dashboard</a>
+            {% elif current_user.role.value == 'student' %}
+            <a class="home_button" href="{{ url_for('student_dashboard') }}" role="button">Go to Dashboard</a>
+        {% endif %}
+        <a class="home_button"  href="{{ url_for('profile') }}" role="button">Edit Profile</a>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+    
+body {
+    background-color: #e6f0fa; 
+    color: #0d47a1;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+.home_container {
+    max-width: 900px;
+    margin: 80px auto;
+    padding: 40px;
+    background-color: #ffffff;
+    border-radius: 20px;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+    text-align: center;
+    animation: fadeIn 1s ease;
+}
+.home_title {
+    font-size: 2.5rem;
+    margin-bottom: 20px;
+    color: #1e88e5; 
+}
+
+.home_subtitle {
+    font-size: 1.2rem;
+    margin-bottom: 20px;
+    line-height: 1.6;
+}
+
+.home_description {
+    font-size: 1.1rem;
+    margin-bottom: 30px;
+    color: #555;
+}
+.home_divider {
+    width: 80px;
+    height: 3px;
+    margin: 20px auto;
+    background-color: #42a5f5; 
+    border-radius: 3px;
+    border: none;
+}
+.home_actions {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+.home_button {
+    text-decoration: none;
+    padding: 14px 32px;
+    border-radius: 50px;
+    font-weight: bold;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    border: none;
+}
+.home_button[href*="login"],
+.home_button[href*="admin_dashboard"],
+.home_button[href*="lecturer_dashboard"],
+.home_button[href*="student_dashboard"] {
+    background-color: #1e88e5; 
+    color: #fff;
+}
+
+.home_button[href*="login"]:hover,
+.home_button[href*="admin_dashboard"]:hover,
+.home_button[href*="lecturer_dashboard"]:hover,
+.home_button[href*="student_dashboard"]:hover {
+    background-color: #1565c0; 
+}
+.home_button[href*="signup"],
+.home_button[href*="profile"] {
+    background-color: #ffffff;
+    color: #1e88e5;
+    border: 2px solid #1e88e5;
+}
+
+.home_button[href*="signup"]:hover,
+.home_button[href*="profile"]:hover {
+    background-color: #e3f2fd;
+    border-color: #1565c0;
+}
+.home_welcome {
+    margin-bottom: 20px;
+    font-size: 1.1rem;
+    font-weight: 500;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+@media (max-width: 768px) {
+    .home_container {
+        margin: 40px 20px;
+        padding: 30px;
+    }
+    .home_title {
+        font-size: 2rem;
+    }
+    .home_subtitle, .home_description {
+        font-size: 1rem;
+    }
+    .home_button {
+        padding: 12px 25px;
+        font-size: 0.95rem;
+    }
+}
+</style>
+{% endblock %}

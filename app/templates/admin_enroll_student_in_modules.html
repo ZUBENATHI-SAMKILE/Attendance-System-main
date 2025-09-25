@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+{% block title %}Enroll Student in Modules{% endblock %}
+
+{% block content %}
+<div class="enroll-container">
+    <div class="card">
+        <div class="card-header">
+            <h3><i class="fas fa-user-graduate"></i> Enroll {{ student.full_name }} in Modules</h3>
+        </div>
+        <div class="card-body">
+            <div class="alert-info">
+                <strong>Student:</strong> {{ student.full_name }} ({{ student.student_number }})
+            </div>
+
+            <form method="POST">
+                {{ form.hidden_tag() }}
+
+                <div class="form-group">
+                    {{ form.modules.label(class="form-label") }}
+                    <div class="form-text">Hold Ctrl/Cmd to select multiple modules</div>
+                    {{ form.modules(class="form-control", size=8) }}
+                    {% if form.modules.errors %}
+                        <div class="error-text">
+                            {% for error in form.modules.errors %}
+                                <small>{{ error }}</small>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+
+                {% if existing_modules %}
+                <div class="form-group">
+                    <label class="form-label">Currently Enrolled In:</label>
+                    <div class="alert-warning enrolled-modules">
+                        {% for module_id in existing_modules %}
+                            {% set module = Module.query.get(module_id) %}
+                            {% if module %}
+                                <span class="badge"><i class="fas fa-book"></i> {{ module.module_code }}</span>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
+                <div class="form-actions">
+                    <a href="{{ url_for('admin_list_users') }}" class="btn-cancel">
+                        <i class="fas fa-times"></i> Cancel
+                    </a>
+                    {{ form.submit(class="btn-submit") }}
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+.enroll-container {
+    max-width: 700px;
+    margin: 50px auto;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.card {
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    overflow: hidden;
+}
+
+.card-header {
+    background: linear-gradient(135deg, #1976d2 0%, #42a5f5 100%);
+    color: #fff;
+    padding: 20px;
+    font-size: 1.4rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.card-body {
+    padding: 25px;
+}
+
+.alert-info, .alert-warning {
+    background: #e3f2fd;
+    border-radius: 8px;
+    padding: 12px 15px;
+    margin-bottom: 20px;
+}
+
+.alert-warning {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+}
+
+.form-control {
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+    font-size: 14px;
+    font-family: inherit;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: #1976d2;
+    box-shadow: 0 0 5px rgba(25,118,210,0.3);
+}
+
+.form-text {
+    font-size: 12px;
+    color: #555;
+    margin-top: 4px;
+}
+
+.error-text small {
+    color: #d32f2f;
+}
+
+.enrolled-modules .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 5px 10px;
+    margin-right: 5px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #1976d2 0%, #42a5f5 100%);
+    color: white;
+    font-size: 13px;
+}
+
+.form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.btn-cancel, .btn-submit {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 18px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: none;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-cancel {
+    background: #b0bec5;
+    color: #fff;
+}
+
+.btn-cancel:hover {
+    background: #90a4ae;
+}
+
+.btn-submit {
+    background: linear-gradient(135deg, #1976d2 0%, #42a5f5 100%);
+    color: #fff;
+}
+
+.btn-submit:hover {
+    background: linear-gradient(135deg, #1565c0 0%, #1e88e5 100%);
+}
+</style>
+
+<!-- Font Awesome -->
+<script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+{% endblock %}

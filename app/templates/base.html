@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Attendance System{% endblock %}</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <div class="navbar-container">
+            <a class="navbar-brand" href="{{ url_for('home') }}">
+                <i class="fa fa-graduation-cap" aria-hidden="true"></i>
+                Attendance System
+            </a>
+
+            <ul class="navbar-menu">
+                {% if current_user.is_authenticated %}
+                    {% if current_user.role.value == 'admin' %}
+                        <li><a href="{{ url_for('admin_dashboard') }}">Admin Dashboard</a></li>
+                    {% elif current_user.role.value == 'lecturer' %}
+                        <li><a href="{{ url_for('lecturer_dashboard') }}">Lecturer Dashboard</a></li>
+                    {% elif current_user.role.value == 'student' %}
+                        <li><a href="{{ url_for('student_dashboard') }}">Student Dashboard</a></li>
+                    {% endif %}
+                {% endif %}
+            </ul>
+
+            <ul class="navbar-menu right-menu">
+                {% if current_user.is_authenticated %}
+                    <li><a href="{{ url_for('profile') }}">Profile</a></li>
+                    <li><a href="{{ url_for('logout') }}">Logout</a></li>
+                {% else %}
+                    <li><a href="{{ url_for('login') }}">Login</a></li>
+                    <li><a href="{{ url_for('signup') }}">Sign Up</a></li>
+                {% endif %}
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-container">
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">
+                        {{ message }}
+                        <span class="alert-close" onclick="this.parentElement.style.display='none';">&times;</span>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <!-- Page Content -->
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>&copy; 2024 Attendance System. All rights reserved.</p>
+        <p>Built with Flask</p>
+    </footer>
+
+    {% block scripts %}{% endblock %}
+</body>
+</html>
+
+<style>
+    
+body {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    margin: 0;
+    font-family: 'Arial', sans-serif;
+    background-color: #e3f2fd;
+    color: #333;
+}
+.navbar {
+    background: linear-gradient(to right, #42a5f5, #1e88e5); 
+    padding: 15px 20px;
+    color: #fff;
+}
+
+.navbar-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.navbar-brand {
+    font-size: 1.8rem;
+    font-weight: bold;
+    color: #fff;
+    text-decoration: none;
+}
+
+.navbar-brand i {
+    margin-right: 10px;
+    font-size: 1.5rem;
+    vertical-align: middle;
+}
+
+.navbar-menu {
+    list-style: none;
+    display: flex;
+    gap: 15px;
+    margin: 0;
+    padding: 0;
+}
+
+.navbar-menu li a {
+    color: #fff;
+    text-decoration: none;
+    font-weight: 500;
+    padding: 5px 10px;
+    transition: background 0.3s, color 0.3s;
+}
+
+.navbar-menu li a:hover {
+    background: #90caf9; 
+    color: #333;
+    border-radius: 5px;
+}
+
+.right-menu {
+    margin-left: auto;
+}
+.main-container {
+    flex: 1;
+    max-width: 1200px;
+    width: 100%;
+    margin: 40px auto;
+    padding: 20px;
+}
+
+.alert {
+    padding: 15px 20px;
+    margin-bottom: 20px;
+    border-radius: 8px;
+    position: relative;
+    font-weight: 500;
+    color: #fff;
+}
+
+.alert-success { background-color: #4caf50; }
+.alert-error { background-color: #f44336; }
+.alert-info { background-color: #2196f3; }
+
+.alert-close {
+    position: absolute;
+    top: 8px;
+    right: 12px;
+    font-size: 20px;
+    cursor: pointer;
+}
+.attendance-home {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 60vh;
+    background: linear-gradient(to right, #90caf9, #42a5f5); 
+    color: #fff;
+    text-align: center;
+    border-radius: 15px;
+    margin-bottom: 40px;
+    position: relative;
+    overflow: hidden;
+}
+
+.hero-text {
+    max-width: 600px;
+}
+
+.attendance-title {
+    font-size: 3rem;
+    font-weight: 700;
+    margin-bottom: 20px;
+}
+
+.attendance-subtitle {
+    font-size: 1.3rem;
+    margin-bottom: 20px;
+    opacity: 0.9;
+}
+
+.attendance-divider {
+    width: 60px;
+    border: 2px solid #fff;
+    margin: 20px auto;
+}
+
+.attendance-text {
+    font-size: 1rem;
+    margin-bottom: 30px;
+}
+.attendance-actions {
+    display: flex;
+    gap: 15px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.attendance-btn {
+    padding: 14px 35px;
+    font-size: 1.1rem;
+    border-radius: 50px;
+    text-decoration: none;
+    font-weight: bold;
+    transition: all 0.3s ease;
+}
+
+.attendance-btn:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 15px rgba(0,0,0,0.2);
+}
+
+.primary-btn {
+    background: #1e88e5; 
+    color: #fff;
+    border: none;
+}
+
+.primary-btn:hover {
+    background: #1976d2; 
+}
+.secondary-btn {
+    border: 2px solid #fff;
+    color: #fff;
+}
+
+.secondary-btn:hover {
+    background: #90caf9;
+    color: #fff;
+}
+
+.hero-icon {
+    margin-top: 30px;
+    color: #ffeb3b; 
+    font-size: 10rem;
+    animation: float 3s ease-in-out infinite;
+}
+@keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-20px); }
+}
+.login-container {
+    width: 100%;
+    max-width: 600px;
+    padding: 20px;
+}
+.login-card {
+    background-color: #fff;
+    border-radius: 20px;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+    padding: 30px;
+    text-align: center;
+    animation: fadeIn 1s ease;
+}
+.login-title {
+    font-size: 1.8rem;
+    color: #1e88e5;
+    margin-bottom: 25px;
+}
+.login-field {
+    margin-bottom: 20px;
+    text-align: left;
+}
+
+.login-label {
+    display: block;
+    margin-bottom: 5px;
+    color: #0d47a1;
+    font-weight: 500;
+}
+
+.login-input {
+    width: 100%;
+    padding: 12px 15px;
+    border-radius: 10px;
+    border: 1px solid #ccc;
+    outline: none;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+}
+
+.login-input:focus {
+    border-color: #1e88e5;
+    box-shadow: 0 0 8px rgba(30,136,229,0.3);
+}
+.password-group {
+    position: relative;
+    display: flex;
+}
+
+.password-group .toggle-password {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: #1e88e5;
+    font-size: 1.1rem;
+}
+.login-error {
+    color: #d32f2f;
+    font-size: 0.9rem;
+    margin-top: 5px;
+}
+.login-button {
+    width: 100%;
+    padding: 12px;
+    border: none;
+    border-radius: 50px;
+    background-color: #1e88e5;
+    color: #fff;
+    font-size: 1rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.login-button:hover {
+    background-color: #1565c0;
+}
+
+.login-button:disabled {
+    background-color: #90caf9;
+    cursor: not-allowed;
+}
+.login-footer {
+    margin-top: 20px;
+}
+.footer {
+    text-align: center;
+    padding: 20px 10px;
+    background: #1e88e5; 
+    color: #fff;
+}
+
+.signup-link {
+    color: #1e88e5;
+    text-decoration: none;
+}
+
+.signup-link:hover {
+    text-decoration: underline;
+}
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.footer {
+    text-align: center;
+    padding: 20px 10px;
+    background: #1e88e5; 
+    color: #fff;
+}
+@media (max-width: 768px) {
+    .hero-text {
+        text-align: center;
+    }
+    .attendance-title {
+        font-size: 2.2rem;
+    }
+    .attendance-subtitle {
+        font-size: 1rem;
+    }
+}
+</style>

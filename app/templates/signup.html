@@ -1,0 +1,373 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="register_container">
+    <div class="register_card">
+        <h3 class="register_title">Sign Up</h3>
+
+        <form method="POST" action="" id="signupForm">
+            {{ form.hidden_tag() }}
+
+            <!-- Full Name -->
+            <div class="register_field">
+                {{ form.full_name.label(class="register_label") }}
+                {{ form.full_name(class="register_input") }}
+                {% for error in form.full_name.errors %}
+                    <div class="register_error">{{ error }}</div>
+                {% endfor %}
+            </div>
+
+            <!-- Email -->
+            <div class="register_field">
+                {{ form.email.label(class="register_label") }}
+                {{ form.email(class="register_input", id="email") }}
+                <div class="register_help">Please use your DUT email (@dut4life.ac.za or @dut.ac.za)</div>
+                <div id="emailValidation" class="register_error">Please use a valid DUT email address</div>
+                {% for error in form.email.errors %}
+                    <div class="register_error">{{ error }}</div>
+                {% endfor %}
+            </div>
+
+            <!-- Role -->
+            <div class="register_field">
+                {{ form.role.label(class="register_label") }}
+                {{ form.role(class="register_select", id="role") }}
+                {% for error in form.role.errors %}
+                    <div class="register_error">{{ error }}</div>
+                {% endfor %}
+            </div>
+
+            <!-- Student Number -->
+            <div id="student_number_field" class="register_field">
+                {{ form.student_number.label(class="register_label") }}
+                {{ form.student_number(class="register_input", id="student_number") }}
+                <div class="register_help">Student number must be 8 characters long (starting with 22)</div>
+                <div id="studentNumberValidation" class="register_error">Student number must start with 22 and be 8 digits</div>
+                {% for error in form.student_number.errors %}
+                    <div class="register_error">{{ error }}</div>
+                {% endfor %}
+            </div>
+
+            <!-- Password -->
+            <div class="register_field">
+                {{ form.password.label(class="register_label") }}
+                <div class="register_input_group">
+                    {{ form.password(class="register_input", id="password") }}
+                    <button type="button" class="register_toggle_password" data-target="password">👁</button>
+                </div>
+                <div class="register_help">Password must be at least 8 characters</div>
+                <div id="passwordValidation" class="register_error">Password must be at least 8 characters</div>
+                {% for error in form.password.errors %}
+                    <div class="register_error">{{ error }}</div>
+                {% endfor %}
+            </div>
+
+            <!-- Confirm Password -->
+            <div class="register_field">
+                {{ form.confirm_password.label(class="register_label") }}
+                <div class="register_input_group">
+                    {{ form.confirm_password(class="register_input", id="confirm_password") }}
+                    <button type="button" class="register_toggle_password" data-target="confirm_password">👁</button>
+                </div>
+                <div id="passwordMatch" class="register_error">Passwords do not match</div>
+                {% for error in form.confirm_password.errors %}
+                    <div class="register_error">{{ error }}</div>
+                {% endfor %}
+            </div>
+
+            <!-- Submit Button -->
+            <div class="register_actions">
+                <button type="submit" class="register_button" id="submitButton">Sign Up</button>
+            </div>
+        </form>
+
+        <div class="register_footer">
+            <p>Already have an account? <a href="{{ url_for('login') }}">Login here</a></p>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const roleSelect = document.getElementById('role');
+        const studentNumberField = document.getElementById('student_number_field');
+        const emailInput = document.getElementById('email');
+        const studentNumberInput = document.getElementById('student_number');
+        const passwordInput = document.getElementById('password');
+        const confirmPasswordInput = document.getElementById('confirm_password');
+        const submitButton = document.getElementById('submitButton');
+        const signupForm = document.getElementById('signupForm');
+        
+        // Password visibility toggle
+        document.querySelectorAll('.toggle-password').forEach(button => {
+            button.addEventListener('click', function() {
+                const targetId = this.getAttribute('data-target');
+                const targetInput = document.getElementById(targetId);
+                const icon = this.querySelector('i');
+                
+                if (targetInput.type === 'password') {
+                    targetInput.type = 'text';
+                    icon.classList.remove('bi-eye');
+                    icon.classList.add('bi-eye-slash');
+                } else {
+                    targetInput.type = 'password';
+                    icon.classList.remove('bi-eye-slash');
+                    icon.classList.add('bi-eye');
+                }
+            });
+        });
+        
+        // Toggle student number field based on role
+        function toggleStudentNumberField() {
+            if (roleSelect.value === 'student') {
+                studentNumberField.style.display = 'block';
+            } else {
+                studentNumberField.style.display = 'none';
+            }
+            validateForm();
+        }
+        
+        // Validate DUT email domain
+        function validateEmail() {
+            const email = emailInput.value.trim();
+            const isValid = email.endsWith('@dut4life.ac.za') || email.endsWith('@dut.ac.za');
+            
+            if (email && !isValid) {
+                emailInput.classList.add('is-invalid');
+                return false;
+            } else {
+                emailInput.classList.remove('is-invalid');
+                return true;
+            }
+        }
+        
+        // Validate student number (8 characters, starts with 22)
+        function validateStudentNumber() {
+            if (roleSelect.value !== 'student') return true;
+            
+            const studentNumber = studentNumberInput.value.trim();
+            const isValid = studentNumber.length === 8 && studentNumber.startsWith('22');
+            
+            if (studentNumber && !isValid) {
+                studentNumberInput.classList.add('is-invalid');
+                return false;
+            } else {
+                studentNumberInput.classList.remove('is-invalid');
+                return true;
+            }
+        }
+        
+        // Validate password match
+        function validatePasswordMatch() {
+            const password = passwordInput.value;
+            const confirmPassword = confirmPasswordInput.value;
+            const isValid = password === confirmPassword;
+            
+            if (confirmPassword && !isValid) {
+                confirmPasswordInput.classList.add('is-invalid');
+                return false;
+            } else {
+                confirmPasswordInput.classList.remove('is-invalid');
+                return true;
+            }
+        }
+        
+        // Validate password length (at least 8 characters)
+        function validatePassword() {
+            const password = passwordInput.value;
+            const isValid = password.length >= 8;
+            
+            if (password && !isValid) {
+                passwordInput.classList.add('is-invalid');
+                return false;
+            } else {
+                passwordInput.classList.remove('is-invalid');
+                return true;
+            }
+        }
+        
+        // Main form validation
+        function validateForm() {
+            const isEmailValid = validateEmail();
+            const isStudentNumberValid = validateStudentNumber();
+            const isPasswordValid = validatePassword();
+            const isPasswordMatchValid = validatePasswordMatch();
+            
+            // For students, all validations must pass
+            // For lecturers, only email and password validations must pass
+            if (roleSelect.value === 'student') {
+                return isEmailValid && isStudentNumberValid && isPasswordValid && isPasswordMatchValid;
+            } else {
+                return isEmailValid && isPasswordValid && isPasswordMatchValid;
+            }
+        }
+        
+        // Update submit button state
+        function updateSubmitButton() {
+            const isValid = validateForm();
+            submitButton.disabled = !isValid;
+        }
+        
+        // Event listeners
+        roleSelect.addEventListener('change', function() {
+            toggleStudentNumberField();
+            updateSubmitButton();
+        });
+        
+        emailInput.addEventListener('input', updateSubmitButton);
+        studentNumberInput.addEventListener('input', updateSubmitButton);
+        passwordInput.addEventListener('input', updateSubmitButton);
+        confirmPasswordInput.addEventListener('input', updateSubmitButton);
+        
+        // Form submission prevention
+        signupForm.addEventListener('submit', function(e) {
+            if (!validateForm()) {
+                e.preventDefault();
+                alert('Please fix the validation errors before submitting.');
+            }
+        });
+        
+        // Initial setup
+        toggleStudentNumberField();
+        updateSubmitButton();
+    });
+</script>
+<style>
+    
+.register_container {
+    display: flex;                  
+    justify-content: center;        
+    align-items: center;            
+    min-height: 100vh;              
+    width: 100%;
+    padding: 20px;
+    margin: 0 auto;
+}
+.register_card {
+    background-color: #ffffff;
+    padding: 30px;
+    border-radius: 15px;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+    animation: fadeIn 0.8s ease-in-out;
+    width: 100%;
+    max-width: 500px;
+}
+.register_title {
+    text-align: center;
+    font-size: 1.8rem;
+    margin-bottom: 20px;
+    color: #1e88e5;
+}
+.register_field {
+    margin-bottom: 18px;
+    display: flex;
+    flex-direction: column;
+}
+.register_label {
+    font-weight: bold;
+    margin-bottom: 6px;
+    font-size: 0.95rem;
+}
+.register_input,
+.register_select {
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid #b0bec5;
+    font-size: 1rem;
+    width: 100%;
+    box-sizing: border-box;
+}
+.register_input:focus,
+.register_select:focus {
+    border-color: #42a5f5;
+    outline: none;
+    box-shadow: 0 0 5px rgba(66, 165, 245, 0.5);
+}
+.register_input_group {
+    display: flex;
+    align-items: center;
+}
+
+.register_input_group .register_input {
+    flex: 1;
+}
+
+.register_toggle_password {
+    background: #e3f2fd;
+    border: 1px solid #b0bec5;
+    border-left: none;
+    padding: 10px 12px;
+    border-radius: 0 8px 8px 0;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+.register_toggle_password:hover {
+    background: #bbdefb;
+}
+.register_help {
+    font-size: 0.85rem;
+    color: #666;
+    margin-top: 4px;
+}
+.register_error {
+    font-size: 0.85rem;
+    color: #d32f2f;
+    margin-top: 4px;
+    display: none; 
+}
+.register_actions {
+    margin-top: 20px;
+}
+
+.register_button {
+    width: 100%;
+    background-color: #1e88e5;
+    color: #ffffff;
+    border: none;
+    padding: 14px;
+    font-size: 1rem;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.3s ease;
+}
+
+.register_button:hover {
+    background-color: #1565c0;
+}
+.register_footer {
+    margin-top: 15px;
+    text-align: center;
+    font-size: 0.95rem;
+}
+
+.register_footer a {
+    color: #1e88e5;
+    text-decoration: none;
+}
+
+.register_footer a:hover {
+    text-decoration: underline;
+}
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-15px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+@media (max-width: 500px) {
+    .register_card {
+        padding: 20px;
+    }
+    .register_title {
+        font-size: 1.5rem;
+    }
+}
+
+</style>
+
+{% endblock %}

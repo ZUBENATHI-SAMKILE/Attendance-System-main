@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="calendar-container">
+    <h2 class="page-title"><i class="fa fa-calendar-alt"></i> Calendar View - {{ month_name }} {{ year }}</h2>
+
+    <!-- Month Navigation -->
+    <div class="calendar-nav">
+        <a href="{{ url_for('lecturer_calendar', year=prev_year, month=prev_month) }}" class="btn-nav"><i class="fa fa-arrow-left"></i> Previous Month</a>
+        <a href="{{ url_for('lecturer_calendar', year=next_year, month=next_month) }}" class="btn-nav">Next Month <i class="fa fa-arrow-right"></i></a>
+    </div>
+
+    <!-- Current Date -->
+    <div class="today-indicator">
+        <i class="fa fa-calendar-check"></i> Today is: {{ today.strftime('%A, %B %d, %Y') }}
+    </div>
+
+    <!-- Calendar Table -->
+    <div class="calendar-table-wrapper">
+        <table class="calendar-table">
+            <thead>
+                <tr>
+                    <th>Sun</th>
+                    <th>Mon</th>
+                    <th>Tue</th>
+                    <th>Wed</th>
+                    <th>Thu</th>
+                    <th>Fri</th>
+                    <th>Sat</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for week in cal %}
+                <tr>
+                    {% for day in week %}
+                    <td class="{% if day == today.day and month == today.month and year == today.year %}today{% endif %}">
+                        {% if day != 0 %}
+                        <div class="day-number {% if day == today.day and month == today.month and year == today.year %}fw-bold{% endif %}">
+                            {{ day }}
+                        </div>
+                        {% if day in classes_by_day %}
+                        <div class="classes-count">
+                            <i class="fa fa-chalkboard"></i> {{ classes_by_day[day] | length }} Class(es)
+                        </div>
+                        <ul class="classes-list">
+                            {% for c in classes_by_day[day] %}
+                            <li>
+                                <small>
+                                    {{ c.module.module_code }} - {{ c.class_type.value }}<br>
+                                    {{ c.start_time.strftime('%H:%M') }} - {{ c.end_time.strftime('%H:%M') }}
+                                </small>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                        {% endif %}
+                        {% endif %}
+                    </td>
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<style>
+.calendar-container {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+}
+.page-title {
+    font-size: 1.8rem;
+    font-weight: 600;
+    color: #2c3e50;
+    margin-bottom: 20px;
+}
+.calendar-nav {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 15px;
+}
+
+.btn-nav {
+    background-color: #2980b9;
+    color: white;
+    padding: 8px 15px;
+    border-radius: 5px;
+    text-decoration: none;
+    font-weight: 500;
+    transition: background-color 0.2s;
+}
+
+.btn-nav:hover {
+    background-color: #1c5980;
+}
+
+.today-indicator {
+    background-color: #d1ecf1;
+    color: #0c5460;
+    padding: 10px;
+    border-radius: 5px;
+    margin-bottom: 20px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.calendar-table-wrapper {
+    overflow-x: auto;
+}
+
+.calendar-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.calendar-table th, .calendar-table td {
+    border: 1px solid #ddd;
+    padding: 10px;
+    text-align: center;
+    vertical-align: top;
+}
+
+.calendar-table th {
+    background-color: #34495e;
+    color: white;
+    font-weight: 600;
+}
+
+.calendar-table td {
+    height: 120px;
+    position: relative;
+}
+
+.today {
+    background-color: #ecf0f1;
+    font-weight: 600;
+}
+
+.day-number {
+    font-weight: 500;
+    margin-bottom: 5px;
+}
+
+.classes-count {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #2980b9;
+    margin-bottom: 5px;
+}
+
+.classes-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    font-size: 0.8rem;
+}
+
+.classes-list li {
+    margin-bottom: 3px;
+    color: #2c3e50;
+}
+
+.classes-list small {
+    display: block;
+}
+
+@media(max-width: 768px) {
+    .calendar-table td {
+        height: auto;
+        font-size: 0.85rem;
+    }
+}
+</style>
+{% endblock %}

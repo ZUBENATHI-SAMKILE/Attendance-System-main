@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block title %}Assign Modules to Lecturer{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1><i class="fa-solid fa-chalkboard-teacher"></i> Assign Modules to {{ lecturer.full_name }}</h1>
+
+    <form method="POST">
+        {{ form.hidden_tag() }}
+
+        <div class="mb-3">
+            {{ form.modules.label(class="form-label") }}
+            {{ form.modules(class="form-select", multiple="multiple", size=10, **{'data-existing': existing_modules | tojson }) }}
+            {% if form.modules.errors %}
+                <div class="text-danger mt-1">
+                    {% for error in form.modules.errors %}
+                        <small>{{ error }}</small>
+                    {% endfor %}
+                </div>
+            {% endif %}
+            <div class="form-text">Hold Ctrl/Cmd to select multiple modules</div>
+        </div>
+
+        {{ form.submit(class="btn btn-primary-custom") }}
+        <a href="{{ url_for('admin_list_users') }}" class="btn btn-secondary-custom ms-2">
+            <i class="fa-solid fa-arrow-left"></i> Back
+        </a>
+    </form>
+</div>
+
+<script>
+    var select = document.querySelector('select[name="modules"]');
+    var existing = JSON.parse(select.dataset.existing);
+    for (var option of select.options) {
+        if (existing.includes(option.value)) {
+            option.selected = true;
+        }
+    }
+</script>
+
+<style>
+/* Buttons */
+.btn-primary-custom {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 10px 20px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #1976d2 0%, #42a5f5 100%);
+    color: white;
+    border: none;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+}
+.btn-primary-custom:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(25, 118, 210, 0.3);
+}
+
+/* Secondary Button */
+.btn-secondary-custom {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 10px 20px;
+    border-radius: 8px;
+    background: #6c757d;
+    color: white;
+    border: none;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+}
+.btn-secondary-custom:hover {
+    background: #5a6268;
+}
+
+/* Select field */
+.form-select {
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    padding: 6px 12px;
+}
+
+/* Font Awesome fallback */
+@font-face {
+    font-family: 'Font Awesome 6 Free';
+    font-style: normal;
+    font-weight: 900;
+    src: url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/webfonts/fa-solid-900.woff2') format('woff2');
+}
+.fa-solid { font-family: 'Font Awesome 6 Free'; font-weight: 900; }
+</style>
+{% endblock %}

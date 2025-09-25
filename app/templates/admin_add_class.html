@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block title %}Add Class{% endblock %}
+
+{% block content %}
+<h1><i class="fa-solid fa-chalkboard-teacher"></i> Add Class</h1>
+
+<form method="POST">
+    {{ form.hidden_tag() }}
+
+    <div class="form-group">
+        {{ form.module_id.label }} <br>
+        {{ form.module_id(class="input-field") }}
+    </div>
+
+    <div class="form-group">
+        {{ form.lecturer_id.label }} <br>
+        {{ form.lecturer_id(class="input-field") }}
+    </div>
+
+    <div class="form-group">
+        {{ form.class_type.label }} <br>
+        {{ form.class_type(class="input-field") }}
+    </div>
+
+    <div class="form-group">
+        {{ form.class_date.label }} <br>
+        {{ form.class_date(class="input-field") }}
+    </div>
+
+    <div class="form-group">
+        {{ form.start_time.label }} <br>
+        {{ form.start_time(class="input-field") }}
+    </div>
+
+    <div class="form-group">
+        {{ form.end_time.label }} <br>
+        {{ form.end_time(class="input-field") }}
+    </div>
+
+    <div class="form-group">
+        {{ form.location.label }} <br>
+        {{ form.location(class="input-field") }}
+    </div>
+
+    {{ form.submit(class="btn btn-primary-custom") }}
+</form>
+
+<style>
+/* Input Fields */
+.input-field {
+    width: 100%;
+    padding: 10px 12px;
+    margin: 8px 0 20px 0;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    font-size: 1rem;
+}
+
+/* Button Styling */
+.btn-primary-custom {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: linear-gradient(135deg, #1976d2 0%, #42a5f5 100%);
+    color: white;
+    border: none;
+    padding: 12px 25px;
+    border-radius: 12px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+.btn-primary-custom:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(25, 118, 210, 0.3);
+}
+
+/* Font Awesome fallback */
+@font-face {
+    font-family: 'Font Awesome 6 Free';
+    font-style: normal;
+    font-weight: 900;
+    src: url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/webfonts/fa-solid-900.woff2') format('woff2');
+}
+.fa-solid { font-family: 'Font Awesome 6 Free'; font-weight: 900; }
+</style>
+{% endblock %}

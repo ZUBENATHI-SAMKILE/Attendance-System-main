@@ -1,0 +1,783 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Face Recognition Attendance Scanner</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #435fdc 0%, #4c81dc 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .scanner-container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
+        
+        .video-feed {
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            background: #000;
+        }
+        
+        .session-ended-alert {
+            background: linear-gradient(45deg, #dc3545, #c82333);
+            color: white;
+            border: none;
+            animation: pulse-alert 2s infinite;
+        }
+        
+        @keyframes pulse-alert {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+            100% { transform: scale(1); }
+        }
+        
+.student-card.recognized {
+    border: 3px solid #198754;
+    background-color: #f8fff9;
+    transition: all 0.3s ease;
+}
+        
+        .student-card.already-marked {
+            border: 3px solid #0dcaf0;
+            background-color: #f0f9ff;
+        }
+        
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(0, 255, 0, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(0, 255, 0, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(0, 255, 0, 0); }
+        }
+        
+        .video-container {
+            position: relative;
+            display: inline-block;
+        }
+        
+        #capture-indicator {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+            display: none;
+        }
+        
+        .status-indicator {
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+        }
+        
+        .recognition-result {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 1000;
+            animation: fadeInOut 3s ease-in-out;
+            display: none;
+        }
+        
+        @keyframes fadeInOut {
+            0%, 100% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+            10%, 90% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+        }
+        
+        .session-active-badge {
+            animation: pulse 1.5s infinite;
+        }
+        
+        .student-status-badge {
+            font-size: 0.7rem;
+            padding: 3px 6px;
+        }
+        
+        
+      .student-list {
+    max-height: 450px; 
+    overflow-y: auto;
+    overflow-x: hidden; 
+    padding: 10px;
+    width: 100%; 
+}
+        
+  .student-card {
+    margin-bottom: 12px; 
+    padding: 12px; 
+    word-wrap: break-word; 
+    overflow: hidden; 
+}
+        .scanner-controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px; 
+            justify-content: center;
+            margin-top: 20px;
+        }
+        
+        .scanner-controls .btn {
+            margin: 5px;
+            flex: 1 1 auto; 
+            min-width: 180px; 
+        }
+        
+.col-lg-8 {
+    width: 65%; 
+}
+
+.col-lg-4 {
+    width: 35%; 
+}
+        .progress-container {
+            margin-top: 15px;
+            padding: 0 10px;
+        }
+        
+        .progress {
+            height: 12px;
+            border-radius: 6px;
+            margin-bottom: 8px;
+        }
+        
+        .progress-text {
+            font-size: 0.85rem;
+            text-align: center;
+            color: #6c757d;
+        }
+    </style>
+</head>
+<body>
+    <div class="container py-4">
+        <div class="row justify-content-center">
+            <div class="col-lg-11"> <!-- Wider container -->
+                <div class="scanner-container p-4" data-session-ended="{{ 'true' if is_session_ended else 'false' }}" data-class-id="{{ class_session.class_id }}">
+                    <!-- Session Ended Alert -->
+                    {% if is_session_ended %}
+                    <div class="alert session-ended-alert text-center mb-4">
+                        <h4><i class="bi bi-exclamation-triangle"></i> Session Ended</h4>
+                        <p class="mb-0">This class session has ended. Attendance marking is no longer available.</p>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Header Card -->
+                    <div class="card mb-4 border-0 shadow">
+                        <div class="card-header d-flex justify-content-between align-items-center bg-primary text-white">
+                            <h4 class="mb-0">
+                                <i class="bi bi-camera"></i> Attendance Scanner
+                                {% if not is_session_ended %}
+                                <span class="badge bg-success ms-2 session-active-badge">Active</span>
+                                {% endif %}
+                            </h4>
+                            <div class="d-flex align-items-center">
+                                <span class="badge bg-light text-dark fs-6 me-3">
+                                    <i class="bi bi-people"></i> 
+                                    <span id="recognizedCount">0</span>/<span id="totalStudents">0</span>
+                                </span>
+                                <a href="{{ url_for('lecturer_attendance_scanner') }}" class="btn btn-outline-light">
+                                    <i class="bi bi-arrow-left"></i> Back to Classes
+                                </a>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <h5 class="card-title">{{ class_info }}</h5>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <p class="mb-1"><strong>Time:</strong> {{ class_session.start_time.strftime('%H:%M') }} - {{ class_session.end_time.strftime('%H:%M') }}</p>
+                                    <p class="mb-1"><strong>Location:</strong> {{ class_session.location or 'Not specified' }}</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p class="mb-1"><strong>Current Time:</strong> <span id="current-time">{{ now.strftime('%Y-%m-%d %H:%M:%S') }}</span></p>
+                                    <p class="mb-1"><strong>Session Status:</strong> 
+                                        {% if is_session_ended %}
+                                        <span class="badge bg-danger">Ended</span>
+                                        {% elif is_session_active %}
+                                        <span class="badge bg-success">Active Now</span>
+                                        {% else %}
+                                        <span class="badge bg-warning">Upcoming</span>
+                                        {% endif %}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Scanner Interface -->
+                    {% if not is_session_ended %}
+                    <div class="row">
+                        <!-- Video Feed -->
+                        <div class="col-lg-8">
+                            <div class="card border-0 shadow">
+                                <div class="card-header bg-primary text-white">
+                                    <h5 class="mb-0">
+                                        <i class="bi bi-camera-video"></i> Live Camera Feed
+                                    </h5>
+                                </div>
+                                <div class="card-body text-center p-3">
+                                    <div id="statusIndicator" class="status-indicator alert alert-info">
+                                        <i class="bi bi-info-circle"></i> 
+                                        <span id="statusText">Ready to start camera</span>
+                                    </div>
+                                    
+                                    <div class="video-container">
+                                        <video id="video" class="video-feed" width="640" height="480" autoplay muted></video>
+                                        <canvas id="canvas" class="d-none"></canvas>
+                                        <div id="capture-indicator">CAPTURING...</div>
+                                    </div>
+                                    
+                                    <div class="scanner-controls mt-3">
+                                        <button id="start-camera" class="btn btn-success btn-lg">
+                                            <i class="bi bi-camera-video"></i> Start Camera
+                                        </button>
+                                        <button id="stop-camera" class="btn btn-danger btn-lg" disabled>
+                                            <i class="bi bi-camera-video-off"></i> Stop Camera
+                                        </button>
+                                        <button id="capture" class="btn btn-primary btn-lg" disabled>
+                                            <i class="bi bi-camera"></i> Capture & Recognize
+                                        </button>
+                                        <button id="auto-scan" class="btn btn-warning btn-lg" disabled>
+                                            <i class="bi bi-robot"></i> Auto Scan (5s)
+                                        </button>
+                                    </div>
+                                    
+                                    <div class="mt-3">
+                                        <small class="text-muted">
+                                            Position your face in the frame and click "Capture & Recognize"
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Student List -->
+                        <div class="col-lg-4">
+                            <div class="card border-0 shadow h-100">
+                                <div class="card-header bg-success text-white">
+                                    <h5 class="mb-0">
+                                        <i class="bi bi-person-check"></i> Recognition Status
+                                    </h5>
+                                </div>
+                                <div class="card-body p-0 d-flex flex-column">
+                                    <div id="student-list" class="student-list flex-grow-1">
+                                        <!-- Students will be loaded here -->
+                                        <p class="text-muted text-center">Loading students...</p>
+                                    </div>
+                                    
+                                    <!-- Progress Section -->
+                                    <div class="progress-container">
+                                        <div class="progress mb-2">
+                                            <div id="progressBar" class="progress-bar" role="progressbar" style="width: 0%"></div>
+                                        </div>
+                                        <div class="progress-text">
+                                            Progress: <span id="progressText">0%</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Recognition Result Popup -->
+                    <div id="recognitionResult" class="recognition-result">
+                        <div class="card border-0 shadow-lg">
+                            <div class="card-body text-center p-4">
+                                <i id="resultIcon" class="bi bi-check-circle-fill display-4 text-success"></i>
+                                <h4 id="resultTitle" class="mt-3 text-success">Success!</h4>
+                                <p id="resultMessage" class="mb-0">Attendance marked successfully</p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Manual Attendance Modal -->
+    <div class="modal fade" id="manualAttendanceModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Manual Attendance</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Face recognition failed. Would you like to mark attendance manually?</p>
+                    <div id="manual-attendance-options">
+                        <!-- Options will be populated here -->
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        class FaceScanner {
+            constructor() {
+                this.video = document.getElementById('video');
+                this.canvas = document.getElementById('canvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.stream = null;
+                this.autoScanInterval = null;
+                this.isProcessing = false;
+                
+                // Get class ID from data attribute
+                const scannerContainer = document.querySelector('.scanner-container');
+                this.classId = parseInt(scannerContainer.dataset.classId);
+                this.students = [];
+                this.markedStudents = new Set();
+                this.recognizedStudents = new Set();
+                
+                this.initializeEventListeners();
+                this.loadStudents();
+                this.updateCurrentTime();
+            }
+            
+            initializeEventListeners() {
+                document.getElementById('start-camera').addEventListener('click', () => this.startCamera());
+                document.getElementById('stop-camera').addEventListener('click', () => this.stopCamera());
+                document.getElementById('capture').addEventListener('click', () => this.captureAndRecognize());
+                document.getElementById('auto-scan').addEventListener('click', () => this.toggleAutoScan());
+            }
+            
+            async startCamera() {
+                try {
+                    this.stream = await navigator.mediaDevices.getUserMedia({ 
+                        video: { 
+                            width: 640, 
+                            height: 480,
+                            facingMode: 'user'
+                        } 
+                    });
+                    
+                    this.video.srcObject = this.stream;
+                    
+                    document.getElementById('start-camera').disabled = true;
+                    document.getElementById('stop-camera').disabled = false;
+                    document.getElementById('capture').disabled = false;
+                    document.getElementById('auto-scan').disabled = false;
+                    
+                    this.updateStatus('Camera started successfully!', 'success');
+                } catch (error) {
+                    console.error('Error accessing camera:', error);
+                    this.updateStatus('Error accessing camera: ' + error.message, 'danger');
+                }
+            }
+            
+            stopCamera() {
+                if (this.stream) {
+                    this.stream.getTracks().forEach(track => track.stop());
+                    this.stream = null;
+                }
+                
+                if (this.autoScanInterval) {
+                    clearInterval(this.autoScanInterval);
+                    this.autoScanInterval = null;
+                    document.getElementById('auto-scan').innerHTML = '<i class="bi bi-robot"></i> Auto Scan (5s)';
+                    document.getElementById('auto-scan').classList.remove('btn-danger');
+                    document.getElementById('auto-scan').classList.add('btn-warning');
+                }
+                
+                document.getElementById('start-camera').disabled = false;
+                document.getElementById('stop-camera').disabled = true;
+                document.getElementById('capture').disabled = true;
+                document.getElementById('auto-scan').disabled = true;
+                
+                this.updateStatus('Camera stopped', 'info');
+            }
+            
+            captureAndRecognize() {
+                if (!this.stream) {
+                    this.updateStatus('Please start camera first', 'warning');
+                    return;
+                }
+                
+                if (this.isProcessing) {
+                    this.updateStatus('Already processing a request', 'warning');
+                    return;
+                }
+                
+                this.isProcessing = true;
+                
+                // Show capture indicator
+                const indicator = document.getElementById('capture-indicator');
+                indicator.style.display = 'block';
+                
+                // Capture frame after a brief delay to ensure camera is ready
+                setTimeout(() => {
+                    try {
+                        this.canvas.width = this.video.videoWidth;
+                        this.canvas.height = this.video.videoHeight;
+                        this.ctx.drawImage(this.video, 0, 0);
+                        
+                        const imageData = this.canvas.toDataURL('image/jpeg', 0.8);
+                        
+                        this.recognizeFace(imageData).finally(() => {
+                            this.isProcessing = false;
+                            indicator.style.display = 'none';
+                        });
+                    } catch (error) {
+                        console.error('Capture error:', error);
+                        this.updateStatus('Error capturing image: ' + error.message, 'danger');
+                        this.isProcessing = false;
+                        indicator.style.display = 'none';
+                    }
+                }, 500);
+            }
+            
+            async recognizeFace(imageData) {
+                try {
+                    this.updateStatus('Processing face recognition...', 'warning');
+                    
+                    const response = await fetch('/lecturer/recognize_face', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            image_data: imageData,
+                            class_id: this.classId
+                        })
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        this.showRecognitionResult(result);
+                    } else {
+                        this.updateStatus(result.message || 'Recognition failed', 'warning');
+                        // Show manual attendance options on failure
+                        setTimeout(() => {
+                            this.showManualAttendanceOptions();
+                        }, 1000);
+                    }
+                } catch (error) {
+                    console.error('Recognition error:', error);
+                    this.updateStatus('Recognition error: ' + error.message, 'danger');
+                }
+            }
+            
+            showRecognitionResult(result) {
+                if (result.success && result.student_name) {
+                    // Find the student ID from the name
+                    const student = this.students.find(s => s.full_name === result.student_name);
+                    if (student) {
+                        this.markAttendance(student.user_id, 'present', result);
+                        this.recognizedStudents.add(student.student_number);
+                        
+                        // Show popup result
+                        if (result.already_marked) {
+                            this.showPopupResult(true, `${result.student_name} - Attendance already marked`);
+                            this.updateStatus(`${result.student_name} already marked. Ready for next scan.`, 'info');
+                        } else {
+                            this.showPopupResult(true, `${result.student_name} - Attendance marked successfully!`);
+                            this.updateStatus(`${result.student_name} marked successfully! Ready for next scan.`, 'success');
+                        }
+                    } else {
+                        this.showPopupResult(true, `${result.student_name} recognized!`);
+                        this.updateStatus(`${result.student_name} recognized! Ready for next scan.`, 'success');
+                    }
+                } else {
+                    this.showPopupResult(false, 'No match found. Try manual attendance.');
+                    this.updateStatus('No match found. Try manual attendance or scan again.', 'warning');
+                    setTimeout(() => {
+                        this.showManualAttendanceOptions();
+                    }, 1000);
+                }
+            }
+            
+            // Show popup result
+            showPopupResult(success, message) {
+                const resultElement = document.getElementById('recognitionResult');
+                const resultIcon = document.getElementById('resultIcon');
+                const resultTitle = document.getElementById('resultTitle');
+                const resultMessage = document.getElementById('resultMessage');
+                
+                if (success) {
+                    resultIcon.className = 'bi bi-check-circle-fill display-4 text-success';
+                    resultTitle.textContent = 'Success!';
+                    resultTitle.className = 'mt-3 text-success';
+                } else {
+                    resultIcon.className = 'bi bi-x-circle-fill display-4 text-danger';
+                    resultTitle.textContent = 'Not Recognized';
+                    resultTitle.className = 'mt-3 text-danger';
+                }
+                
+                resultMessage.textContent = message;
+                resultElement.style.display = 'block';
+                
+                setTimeout(() => {
+                    resultElement.style.display = 'none';
+                }, 3000);
+            }
+            
+            async markAttendance(studentId, status, recognitionResult = null) {
+                try {
+                    const response = await fetch('/lecturer/mark_attendance_manual', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            student_id: studentId,
+                            class_id: this.classId,
+                            status: status
+                        })
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        this.markedStudents.add(studentId);
+                        this.updateStudentCard(studentId, true);
+                        this.updateAttendanceCount();
+                        this.updateProgress();
+                        
+                        // Only update status for new marks, not for already marked
+                        if (!recognitionResult || !recognitionResult.already_marked) {
+                            this.updateStatus(`✓ ${result.student_name} - Attendance marked successfully!`, 'success');
+                        }
+                    } else {
+                        this.updateStatus(result.message, 'danger');
+                    }
+                } catch (error) {
+                    console.error('Error marking attendance:', error);
+                    this.updateStatus('Error marking attendance', 'danger');
+                }
+            }
+            
+            toggleAutoScan() {
+                const autoScanBtn = document.getElementById('auto-scan');
+                
+                if (this.autoScanInterval) {
+                    clearInterval(this.autoScanInterval);
+                    this.autoScanInterval = null;
+                    autoScanBtn.innerHTML = '<i class="bi bi-robot"></i> Auto Scan (5s)';
+                    autoScanBtn.classList.remove('btn-danger');
+                    autoScanBtn.classList.add('btn-warning');
+                    this.updateStatus('Auto scan stopped', 'info');
+                } else {
+                    this.autoScanInterval = setInterval(() => {
+                        if (!this.isProcessing) {
+                            this.captureAndRecognize();
+                        }
+                    }, 5000);
+                    autoScanBtn.innerHTML = '<i class="bi bi-stop-circle"></i> Stop Auto Scan';
+                    autoScanBtn.classList.remove('btn-warning');
+                    autoScanBtn.classList.add('btn-danger');
+                    this.updateStatus('Auto scan started (5s intervals)', 'success');
+                }
+            }
+            
+            // Update progress
+            updateProgress() {
+                const total = this.students.length;
+                const recognized = this.markedStudents.size;
+                const percentage = total > 0 ? Math.round((recognized / total) * 100) : 0;
+                
+                const progressBar = document.getElementById('progressBar');
+                const progressText = document.getElementById('progressText');
+                const recognizedCount = document.getElementById('recognizedCount');
+                
+                progressBar.style.width = `${percentage}%`;
+                progressText.textContent = `${percentage}%`;
+                recognizedCount.textContent = recognized;
+                
+                // Update progress bar color
+                if (percentage >= 75) {
+                    progressBar.className = 'progress-bar bg-success';
+                } else if (percentage >= 50) {
+                    progressBar.className = 'progress-bar bg-warning';
+                } else {
+                    progressBar.className = 'progress-bar bg-danger';
+                }
+            }
+            
+            async loadStudents() {
+                try {
+                    // First load enrolled students
+                    const response = await fetch('/lecturer/get_enrolled_students?class_id=' + this.classId);
+                    const students = await response.json();
+                    
+                    if (students && students.length > 0) {
+                        this.students = students;
+                        
+                        // Then load existing attendance to pre-populate marked students
+                        await this.loadExistingAttendance();
+                        
+                        this.renderStudentList();
+                        this.updateAttendanceCount();
+                        this.updateProgress();
+                    } else {
+                        this.updateStatus('No enrolled students found for this class', 'warning');
+                    }
+                } catch (error) {
+                    console.error('Error loading students:', error);
+                    this.updateStatus('Error loading student list', 'danger');
+                }
+            }
+            
+            async loadExistingAttendance() {
+                try {
+                    // Get existing attendance for this class
+                    const response = await fetch(`/lecturer/get_existing_attendance?class_id=${this.classId}`);
+                    const existingAttendance = await response.json();
+                    
+                    if (existingAttendance && existingAttendance.length > 0) {
+                        existingAttendance.forEach(att => {
+                            this.markedStudents.add(att.student_id);
+                        });
+                    }
+                } catch (error) {
+                    console.error('Error loading existing attendance:', error);
+                }
+            }
+            
+            renderStudentList() {
+                const container = document.getElementById('student-list');
+                const totalStudents = document.getElementById('totalStudents');
+                
+                // Update total students count
+                totalStudents.textContent = this.students.length;
+                
+                // Clear existing content
+                container.innerHTML = '';
+                
+                this.students.forEach(student => {
+                    const isMarked = this.markedStudents.has(student.user_id);
+                    
+                    const studentCard = document.createElement('div');
+                    studentCard.className = `student-card card mb-2 ${isMarked ? 'recognized' : ''}`;
+                    studentCard.innerHTML = `
+                        <div class="card-body py-2">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-0">${student.full_name}</h6>
+                                    <small class="text-muted">${student.student_number}</small>
+                                </div>
+                                <div class="student-status">
+                                    <span class="badge ${isMarked ? 'bg-success' : 'bg-secondary'} student-status-badge">
+                                        ${isMarked ? 'Present' : 'Not Marked'}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    container.appendChild(studentCard);
+                });
+            }
+            
+            updateStudentCard(studentId, isPresent) {
+                const student = this.students.find(s => s.user_id === studentId);
+                if (!student) return;
+                
+                const cards = document.querySelectorAll('.student-card');
+                cards.forEach(card => {
+                    const studentNumber = card.querySelector('small').textContent;
+                    if (studentNumber === student.student_number) {
+                        if (isPresent) {
+                            card.classList.add('recognized');
+                            card.querySelector('.student-status').innerHTML = 
+                                '<span class="badge bg-success student-status-badge">Present</span>';
+                        }
+                    }
+                });
+            }
+            
+            updateAttendanceCount() {
+                const total = this.students.length;
+                const marked = this.markedStudents.size;
+                document.getElementById('recognizedCount').textContent = marked;
+                document.getElementById('totalStudents').textContent = total;
+            }
+            
+            showManualAttendanceOptions() {
+                const optionsContainer = document.getElementById('manual-attendance-options');
+                optionsContainer.innerHTML = '';
+                
+                let hasUnmarked = false;
+                
+                this.students.forEach(student => {
+                    if (!this.markedStudents.has(student.user_id)) {
+                        hasUnmarked = true;
+                        const button = document.createElement('button');
+                        button.className = 'btn btn-outline-primary btn-sm me-2 mb-2';
+                        button.textContent = student.full_name + ' (' + student.student_number + ')';
+                        button.onclick = () => {
+                            this.markAttendance(student.user_id, 'present');
+                            const modal = bootstrap.Modal.getInstance(document.getElementById('manualAttendanceModal'));
+                            modal.hide();
+                        };
+                        optionsContainer.appendChild(button);
+                    }
+                });
+                
+                if (!hasUnmarked) {
+                    optionsContainer.innerHTML = '<p class="text-muted">All students have been marked.</p>';
+                }
+                
+                const modal = new bootstrap.Modal(document.getElementById('manualAttendanceModal'));
+                modal.show();
+            }
+            
+            // Update status display - REMOVED SIDE NOTIFICATIONS, ONLY KEEP STATUS INDICATOR
+            updateStatus(message, type = 'info') {
+                const statusIndicator = document.getElementById('statusIndicator');
+                const statusText = document.getElementById('statusText');
+                
+                statusText.textContent = message;
+                statusIndicator.className = `status-indicator alert alert-${type}`;
+            }
+            
+            updateCurrentTime() {
+                const updateTime = () => {
+                    const now = new Date();
+                    document.getElementById('current-time').textContent = 
+                        now.toLocaleString('en-US', { 
+                            year: 'numeric', 
+                            month: '2-digit', 
+                            day: '2-digit',
+                            hour: '2-digit', 
+                            minute: '2-digit', 
+                            second: '2-digit',
+                            hour12: false 
+                        });
+                };
+                
+                updateTime();
+                setInterval(updateTime, 1000);
+            }
+        }
+        
+        // Initialize scanner when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            // Check if session is active using data attribute
+            const scannerContainer = document.querySelector('.scanner-container');
+            const isSessionEnded = scannerContainer ? scannerContainer.dataset.sessionEnded === 'true' : true;
+            
+            if (!isSessionEnded) {
+                window.scanner = new FaceScanner();
+            }
+        });
+    </script>
+</body>
+</html>

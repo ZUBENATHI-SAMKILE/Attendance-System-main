@@ -1,0 +1,190 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="dashboard_container">
+    <div class="dashboard_card">
+        <h2 class="dashboard_title">
+            <i class="fa fa-graduation-cap"></i> Student Dashboard
+        </h2>
+        <div class="dashboard_welcome">
+            Welcome, <strong>{{ current_user.full_name }}</strong>
+       </div>
+
+        <!-- Stats -->
+        <div class="dashboard_stats">
+            <div class="dashboard_stat bg-primary">
+                <h5>Overall Attendance</h5>
+                <h1>{{ overall_attendance }}%</h1>
+                <p>{{ total_classes_attended }} of {{ total_classes }} classes</p>
+            </div>
+            <div class="dashboard_stat bg-success">
+                <h5>Enrolled Modules</h5>
+                <h1>{{ modules_data|length }}</h1>
+                <p>Modules this semester</p>
+            </div>
+            <div class="dashboard_stat bg-info">
+                <h5>Facial Data</h5>
+                <h1>{% if current_user.facial_data %}✓{% else %}✗{% endif %}</h1>
+                <p>{% if current_user.facial_data %}Registered{% else %}Not Registered{% endif %}</p>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="dashboard_actions">
+            <div class="dashboard_action">
+                <h5>My Attendance</h5>
+                <p>View detailed attendance records for all your classes with module breakdown</p>
+                <a href="{{ url_for('student_attendance') }}" class="dashboard_button">View Attendance</a>
+            </div>
+            <div class="dashboard_action">
+                <h5>My Profile</h5>
+                <p>Manage your profile information and facial recognition data</p>
+                <a href="{{ url_for('profile') }}" class="dashboard_button">View Profile</a>
+            </div>
+        </div>
+
+        {% if not modules_data %}
+        <div class="dashboard_alert">
+            <h5>No Modules Enrolled</h5>
+            <p>You are not currently enrolled in any modules. Please contact your administrator.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+<style>
+    
+.dashboard_container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;   
+    background-color: #e6f0fa;
+    padding: 20px;
+    box-sizing: border-box;
+}
+.dashboard_card {
+    background-color: #fff;
+    width: 90%;
+    max-width: 900px;
+    padding: 40px;
+    border-radius: 20px;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+    text-align: center;
+    animation: fadeIn 0.8s ease;
+}
+.dashboard_title {
+    font-size: 2rem;
+    color: #1e88e5;
+    margin-bottom: 15px;
+}
+
+.dashboard_welcome {
+    font-size: 1.1rem;
+    margin-bottom: 30px;
+    font-weight: 500;
+}
+.dashboard_stats {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    margin-bottom: 40px;
+    justify-content: center;
+}
+
+.dashboard_stat {
+    flex: 1 1 200px;
+    background-color: #42a5f5;
+    color: #fff;
+    padding: 25px;
+    border-radius: 15px;
+    text-align: center;
+    animation: fadeUp 0.8s ease;
+    transition: transform 0.3s;
+}
+
+.dashboard_stat.bg-success { background-color: #66bb6a; }
+.dashboard_stat.bg-info { background-color: #29b6f6; }
+
+.dashboard_stat:hover {
+    transform: translateY(-5px);
+}
+.dashboard_actions {
+    display: flex;
+    gap: 25px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.dashboard_action {
+    flex: 1 1 300px;
+    background: #f1f1f1;
+    padding: 25px;
+    border-radius: 15px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    text-align: center;
+    animation: fadeUp 0.8s ease;
+    transition: transform 0.3s;
+}
+
+.dashboard_action:hover {
+    transform: translateY(-5px);
+}
+.dashboard_button {
+    background-color: #1e88e5;
+    color: #fff;
+    text-decoration: none;
+    padding: 12px;
+    border-radius: 10px;
+    margin-top: 15px;
+    transition: background 0.3s, transform 0.3s;
+}
+
+.dashboard_button:hover {
+    background-color: #1565c0;
+    transform: translateY(-3px);
+}
+.dashboard_alert {
+    background-color: #ffcc00;
+    padding: 15px;
+    border-radius: 10px;
+    margin-top: 30px;
+    text-align: center;
+    color: #333;
+}
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeUp {
+    from { opacity: 0; transform: translateY(15px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.dashboard_stat h5::before {
+    content: "\f073"; 
+    font-family: FontAwesome;
+    display: block;
+    font-size: 2rem;
+    margin-bottom: 10px;
+    animation: float 2s ease-in-out infinite;
+}
+
+@keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+}
+@media (max-width: 768px) {
+    .dashboard_stats, .dashboard_actions {
+        flex-direction: column;
+    }
+    .dashboard_card {
+        padding: 30px;
+    }
+}
+
+</style>
+{% endblock %}

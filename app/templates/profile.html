@@ -1,0 +1,561 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="profile_container">
+    <div class="profile_card">
+        <h2 class="profile_title text-center">User Profile</h2>
+
+        <!-- Profile Form -->
+        <form method="POST" action="{{ url_for('profile') }}">
+            {{ form.hidden_tag() }}
+            <div class="form_row">
+                <div class="form_group">
+                    {{ form.full_name.label(class="form_label") }}
+                    {{ form.full_name(class="form_input") }}
+                    {% for error in form.full_name.errors %}
+                        <div class="form_error">{{ error }}</div>
+                    {% endfor %}
+                </div>
+                <div class="form_group">
+                    {{ form.email.label(class="form_label") }}
+                    {{ form.email(class="form_input", readonly=true) }}
+                    {% for error in form.email.errors %}
+                        <div class="form_error">{{ error }}</div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            {% if current_user.role.value == 'student' %}
+            <div class="form_group">
+                {{ form.student_number.label(class="form_label") }}
+                {{ form.student_number(class="form_input", readonly=true) }}
+                {% for error in form.student_number.errors %}
+                    <div class="form_error">{{ error }}</div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <div class="form_row">
+                <div class="form_group">
+                    {{ form.password.label(class="form_label") }}
+                    <div class="input_group">
+                        {{ form.password(class="form_input", placeholder="Leave blank to keep current password", id="password") }}
+                        <button type="button" class="btn_toggle" data-target="password">
+                            <i class="fa fa-eye"></i>
+                        </button>
+                    </div>
+                    <small class="form_help">Password must be at least 8 characters long</small>
+                </div>
+                <div class="form_group">
+                    {{ form.confirm_password.label(class="form_label") }}
+                    <div class="input_group">
+                        {{ form.confirm_password(class="form_input", placeholder="Confirm new password", id="confirm_password") }}
+                        <button type="button" class="btn_toggle" data-target="confirm_password">
+                            <i class="fa fa-eye"></i>
+                        </button>
+                    </div>
+                    <small class="form_help">Must match the new password</small>
+                </div>
+            </div>
+
+            <div class="form_actions">
+                <button type="submit" class="btn_primary">Update Profile</button>
+            </div>
+        </form>
+
+        <!-- Facial Data Section -->
+        {% if current_user.role.value == 'student' %}
+        <div class="facial_section">
+            {% if current_user.facial_data %}
+            <div class="alert alert_success">
+                <i class="fa fa-check-circle"></i>
+                <span>Facial data registered</span>
+                <small>Uploaded on {{ current_user.facial_data[0].uploaded_at.strftime('%Y-%m-%d at %H:%M') }}</small>
+                <div class="alert_actions">
+                    <button type="button" class="btn_info" data-bs-toggle="modal" data-bs-target="#faceModal">
+                        <i class="fa fa-eye"></i> View
+                    </button>
+                    <button type="button" class="btn_warning" id="toggleUpdateBtn" onclick="toggleUpdateForm()">
+                        <i class="fa fa-refresh"></i> <span id="toggleBtnText">Update</span>
+                    </button>
+                </div>
+            </div>
+            {% else %}
+            <div class="alert alert_warning">
+                <i class="fa fa-exclamation-triangle"></i>
+                <span>No facial data found</span>
+                <small>Please register your face for attendance recognition</small>
+            </div>
+            {% endif %}
+
+            {% if current_user.facial_data %}
+            <div id="updateFacialData" style="display: none; margin-top:15px;">
+                {% else %}
+                <div id="updateFacialData" style="display: block; margin-top:15px;">
+                    {% endif %}
+                <div class="facial_card">
+                    <form method="POST" action="{{ url_for('upload_face_route') }}" enctype="multipart/form-data">
+                        <div class="file_upload">
+                            <i class="fa fa-cloud-upload fa-3x"></i>
+                            <h5>Upload Image</h5>
+                            <p>Upload a clear, front-facing photo of your face</p>
+                            <input type="file" class="form_input" id="face_image" name="face_image"
+                                   accept=".jpg,.jpeg,.png" required onchange="previewImage(this)">
+                        </div>
+
+                        <div id="imagePreview" style="display:none;">
+                            <img id="preview" src="" alt="Preview" class="img_preview">
+                            <button type="button" class="btn_danger" onclick="removeUploadImage()">
+                                <i class="fa fa-times"></i>
+                            </button>
+                        </div>
+
+                        <button type="submit" class="btn_secondary">
+                            <i class="fa fa-upload"></i> Upload Image
+                        </button>
+                    </form>
+
+                    <div class="facial_info">
+                        <h6><i class="fa fa-info-circle"></i> Image Requirements:</h6>
+                        <ul>
+                            <li><i class="fa fa-check text_success"></i> Clear, well-lit front-facing photo</li>
+                            <li><i class="fa fa-check text_success"></i> Face should be fully visible</li>
+                            <li><i class="fa fa-check text_success"></i> Formats: JPG, JPEG, PNG</li>
+                            <li><i class="fa fa-check text_success"></i> Max size: 16MB</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+    // Password toggle
+    document.querySelectorAll('.btn_toggle').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const input = document.getElementById(this.dataset.target);
+            const icon = this.querySelector('i');
+            if(input.type === 'password'){
+                input.type = 'text'; icon.classList.replace('fa-eye','fa-eye-slash');
+            } else {
+                input.type = 'password'; icon.classList.replace('fa-eye-slash','fa-eye');
+            }
+        });
+    });
+
+    // Toggle facial update form
+    function toggleUpdateForm() {
+        const div = document.getElementById('updateFacialData');
+        const btnText = document.getElementById('toggleBtnText');
+        const btnIcon = document.querySelector('#toggleUpdateBtn i');
+        if(div.style.display==='none'){
+            div.style.display='block';
+            btnText.textContent='Cancel';
+            btnIcon.classList.replace('fa-refresh','fa-times');
+        } else {
+            div.style.display='none';
+            btnText.textContent='Update';
+            btnIcon.classList.replace('fa-times','fa-refresh');
+            removeUploadImage();
+        }
+    }
+    function previewImage(input) {
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                document.getElementById('preview').src = e.target.result;
+                document.getElementById('imagePreview').style.display = 'block';
+            }
+            reader.readAsDataURL(input.files[0]);
+        } else {
+            document.getElementById('imagePreview').style.display = 'none';
+        }
+    }
+
+    function removeUploadImage(){
+        const input=document.getElementById('face_image');
+        input.value='';
+        document.getElementById('imagePreview').style.display='none';
+    }
+</script>
+<style>
+    .profile_container {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    min-height: 100vh;
+    padding: 40px 20px;
+    background-color: #f4f7fb;
+    box-sizing: border-box;
+}
+.profile_card {
+    background-color: #fff;
+    width: 100%;
+    max-width: 900px;
+    border-radius: 20px;
+    padding: 30px;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+    animation: fadeIn 0.8s ease;
+}
+.profile_title {
+    font-size: 2rem;
+    color: #1e88e5;
+    text-align: center;
+    margin-bottom: 25px;
+}
+.profile_subtitle {
+    font-size: 1.2rem;
+    margin-bottom: 20px;
+    color: #333;
+}
+.profile_field {
+    margin-bottom: 18px;
+    display: flex;
+    flex-direction: column;
+}
+
+.profile_label {
+    font-weight: bold;
+    margin-bottom: 6px;
+    font-size: 0.95rem;
+}
+
+.profile_input {
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid #b0bec5;
+    font-size: 1rem;
+}
+
+.profile_input:focus {
+    border-color: #42a5f5;
+    outline: none;
+    box-shadow: 0 0 5px rgba(66, 165, 245, 0.5);
+}
+.toggle-password {
+    cursor: pointer;
+    background-color: #e3f2fd;
+    border: 1px solid #b0bec5;
+    border-left: none;
+    border-radius: 0 8px 8px 0;
+    padding: 10px;
+    transition: background 0.3s;
+}
+
+.toggle-password:hover {
+    background-color: #bbdefb;
+}
+.profile_button {
+    width: 100%;
+    background-color: #1e88e5;
+    color: #fff;
+    border: none;
+    padding: 14px;
+    font-size: 1rem;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.3s ease;
+}
+
+.profile_button:hover {
+    background-color: #1565c0;
+}
+.facial_card {
+    background-color: #f9f9f9;
+    border-radius: 15px;
+    padding: 20px;
+    margin-top: 20px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+    animation: fadeUp 0.8s ease;
+}
+.profile_alert {
+    display: flex;
+    align-items: center;
+    padding: 15px;
+    border-radius: 12px;
+    margin-bottom: 15px;
+}
+
+.profile_alert.success { background-color: #e8f5e9; color: #2e7d32; }
+.profile_alert.warning { background-color: #fff3e0; color: #ef6c00; }
+
+.profile_alert i {
+    font-size: 1.5rem;
+    margin-right: 12px;
+}
+
+#imagePreview {
+    display: none;
+    margin-bottom: 15px;
+    border: 2px dashed #b0bec5;
+    padding: 10px;
+    border-radius: 8px;
+    position: relative;
+    text-align: center;
+}
+
+#imagePreview img {
+    max-width: 150px;
+    max-height: 150px;
+    border-radius: 8px;
+}
+.profile_container {
+    display: flex;
+    justify-content: center;
+    padding: 40px 20px;
+    background-color: #f5f6fa;
+    min-height: 90vh;
+}
+
+.profile_card {
+    background-color: #ffffff;
+    width: 100%;
+    max-width: 900px;
+    padding: 30px;
+    border-radius: 15px;
+    box-shadow: 0 12px 25px rgba(0, 0, 0, 0.08);
+    animation: fadeIn 0.8s ease-in-out;
+}
+.profile_title {
+    font-size: 2rem;
+    margin-bottom: 25px;
+    color: #1e88e5;
+    text-align: center;
+}
+.form_row {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.form_group {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 15px;
+}
+
+.form_label {
+    font-weight: 600;
+    margin-bottom: 5px;
+    font-size: 0.95rem;
+}
+
+.form_input {
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid #b0bec5;
+    font-size: 1rem;
+    width: 100%;
+    box-sizing: border-box;
+    transition: all 0.3s ease;
+}
+
+.form_input:focus {
+    border-color: #42a5f5;
+    outline: none;
+    box-shadow: 0 0 5px rgba(66, 165, 245, 0.5);
+}
+
+.input_group {
+    display: flex;
+}
+
+.btn_toggle {
+    background: #e3f2fd;
+    border: 1px solid #b0bec5;
+    border-left: none;
+    padding: 0 12px;
+    border-radius: 0 8px 8px 0;
+    cursor: pointer;
+    transition: background 0.3s ease;
+}
+
+.btn_toggle:hover {
+    background: #bbdefb;
+}
+
+.form_help {
+    font-size: 0.85rem;
+    color: #666;
+    margin-top: 4px;
+}
+
+.form_error {
+    font-size: 0.85rem;
+    color: #d32f2f;
+    margin-top: 4px;
+}
+.btn_primary {
+    width: 100%;
+    padding: 14px;
+    background-color: #1e88e5;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background 0.3s ease;
+}
+
+.btn_primary:hover {
+    background-color: #1565c0;
+}
+
+.btn_secondary {
+    padding: 10px 20px;
+    background-color: #6c757d;
+    color: #fff;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn_secondary:hover {
+    background-color: #5a6268;
+}
+
+.btn_info {
+    background-color: #17a2b8;
+    color: #fff;
+    border-radius: 6px;
+    border: none;
+    padding: 6px 12px;
+    font-size: 0.85rem;
+    cursor: pointer;
+}
+
+.btn_warning {
+    background-color: #ffc107;
+    color: #212529;
+    border-radius: 6px;
+    border: none;
+    padding: 6px 12px;
+    font-size: 0.85rem;
+    cursor: pointer;
+}
+
+.btn_danger {
+    background-color: #dc3545;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 5px 10px;
+    margin-left: 5px;
+    cursor: pointer;
+}
+.facial_section {
+    margin-top: 30px;
+}
+
+.facial_card {
+    background-color: #f8f9fa;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+    transition: all 0.3s ease;
+}
+
+.facial_card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+}
+
+.file_upload {
+    text-align: center;
+    margin-bottom: 15px;
+}
+
+.file_upload i {
+    color: #42a5f5;
+    margin-bottom: 10px;
+}
+
+.img_preview {
+    max-width: 150px;
+    max-height: 150px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+}
+
+.alert {
+    padding: 12px 15px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 15px;
+    font-size: 0.95rem;
+}
+
+.alert_success {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.alert_warning {
+    background-color: #fff3cd;
+    color: #856404;
+}
+
+.alert_actions button {
+    margin-left: 8px;
+}
+.facial_info ul {
+    list-style: none;
+    padding-left: 0;
+}
+
+.facial_info li {
+    margin-bottom: 6px;
+}
+
+.text_success {
+    color: #28a745;
+}
+.img_modal {
+    max-width: 100%;
+    max-height: 400px;
+    border-radius: 10px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+}
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-15px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+@media (max-width: 768px) {
+    .form_row {
+        flex-direction: column;
+    }
+
+    .alert_actions button {
+        margin-top: 5px;
+    }
+}
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeUp {
+    from { opacity: 0; transform: translateY(15px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+@media (max-width: 768px) {
+    .profile_card { padding: 20px; }
+    .facial_card { padding: 15px; }
+}
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeUp {
+    from { opacity: 0; transform: translateY(15px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+</style>
+{% endblock %}
