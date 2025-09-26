@@ -2,6 +2,7 @@
 {% block title %}View All Attendance{% endblock %}
 
 {% block content %}
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css" rel="stylesheet">
 <div class="attendance-container">
 
     <!-- Page Title -->
@@ -90,14 +91,11 @@
 </div>
 
 <style>
-/* Page Container */
 .attendance-container {
     max-width: 1200px;
     margin: 0 auto;
     padding: 25px;
 }
-
-/* Header */
 .header-section {
     text-align: center;
     margin-bottom: 30px;
@@ -109,8 +107,6 @@
 .subtitle {
     color: #7f8c8d;
 }
-
-/* Card */
 .card {
     background: #fff;
     border-radius: 12px;
@@ -127,8 +123,6 @@
 .card-body {
     padding: 20px;
 }
-
-/* Form Grid */
 .form-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
@@ -162,8 +156,6 @@
 .form-actions input[type="submit"]:hover {
     background: #1565c0;
 }
-
-/* Table */
 .attendance-table {
     width: 100%;
     border-collapse: collapse;
@@ -180,8 +172,6 @@
 .attendance-table th {
     color: #1976d2;
 }
-
-/* Badges */
 .badge {
     padding: 6px 12px;
     border-radius: 8px;
@@ -195,8 +185,6 @@
 .badge.danger {
     background: #e74c3c;
 }
-
-/* Empty message */
 .empty-message {
     text-align: center;
     color: #7f8c8d;
