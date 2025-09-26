@@ -1,147 +1,173 @@
 {% extends "base.html" %}
 
 {% block content %}
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css" rel="stylesheet">
 <div class="attendance-container">
-    <h2 class="page-title"><i class="fa fa-list-check"></i> View Attendance</h2>
+
+    <!-- Page Title -->
+    <div class="header-section">
+        <h1><i class="fa-solid fa-clipboard-check"></i> View Attendance</h1>
+        <p class="subtitle">Filter and view student attendance records</p>
+    </div>
 
     <!-- Filter Form -->
-    <div class="card attendance-card">
+    <div class="card">
+        <div class="card-header">
+            <i class="fa-solid fa-filter"></i> Filter Records
+        </div>
         <div class="card-body">
-            <form method="POST" action="">
+            <form method="POST" class="filter-form">
                 {{ form.hidden_tag() }}
-                <div class="form-grid">
-                    <div class="form-group">
-                        {{ form.class_id.label(class="form-label") }}
-                        {{ form.class_id(class="form-input") }}
+                
+                <div class="filter-grid">
+                    <div class="filter-group">
+                        {{ form.class_id.label }}
+                        {{ form.class_id }}
                     </div>
-                    <div class="form-group">
-                        {{ form.student_number.label(class="form-label") }}
-                        {{ form.student_number(class="form-input") }}
+
+                    <div class="filter-group">
+                        {{ form.student_number.label }}
+                        {{ form.student_number(placeholder="Enter student number") }}
                     </div>
-                    <div class="form-group">
-                        {{ form.date_from.label(class="form-label") }}
-                        {{ form.date_from(class="form-input", type="date") }}
+
+                    <div class="filter-group">
+                        {{ form.date_from.label }}
+                        {{ form.date_from }}
                     </div>
-                    <div class="form-group">
-                        {{ form.date_to.label(class="form-label") }}
-                        {{ form.date_to(class="form-input", type="date") }}
+
+                    <div class="filter-group">
+                        {{ form.date_to.label }}
+                        {{ form.date_to }}
                     </div>
                 </div>
+
                 <div class="form-actions">
-                    {{ form.submit(class="btn-submit") }}
+                    {{ form.submit }}
                 </div>
             </form>
         </div>
     </div>
 
     <!-- Attendance Table -->
-    <div class="card attendance-card mt-4">
+    <div class="card">
         <div class="card-header">
-            <h4><i class="fa fa-table"></i> Attendance Records</h4>
+            <i class="fa-solid fa-list"></i> Attendance Results ({{ attendances|length }})
         </div>
         <div class="card-body">
             {% if attendances %}
-            <div class="table-responsive">
-                <table class="attendance-table">
-                    <thead>
-                        <tr>
-                            <th>Student</th>
-                            <th>Class</th>
-                            <th>Status</th>
-                            <th>Timestamp</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for att in attendances %}
-                        <tr>
-                            <td>{{ att.student.full_name }} ({{ att.student.student_number }})</td>
-                            <td>{{ att.class_session.module.module_code }} - {{ att.class_session.class_type.value }} on {{ att.class_session.class_date }}</td>
-                            <td>{{ att.attendance_status.value }}</td>
-                            <td>{{ att.timestamp }}</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
+            <table class="attendance-table">
+                <thead>
+                    <tr>
+                        <th><i class="fa-solid fa-user"></i> Student</th>
+                        <th><i class="fa-solid fa-book-open"></i> Class</th>
+                        <th><i class="fa-solid fa-circle-check"></i> Status</th>
+                        <th><i class="fa-solid fa-clock"></i> Timestamp</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for att in attendances %}
+                    <tr>
+                        <td>{{ att.student.full_name }} ({{ att.student.student_number }})</td>
+                        <td>{{ att.class_session.module.module_code }} - {{ att.class_session.class_type.value }} on {{ att.class_session.class_date }}</td>
+                        <td>
+                            {% if att.attendance_status.value == "present" %}
+                                <span class="badge success"><i class="fa-solid fa-check"></i> Present</span>
+                            {% else %}
+                                <span class="badge danger"><i class="fa-solid fa-xmark"></i> Absent</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ att.timestamp.strftime('%Y-%m-%d %H:%M') }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
             {% else %}
-            <p class="no-records"><i class="fa fa-exclamation-circle"></i> No attendance records found.</p>
+            <div class="empty-state">
+                <i class="fa-solid fa-clipboard-list fa-3x"></i>
+                <h3>No Attendance Records Found</h3>
+                <p>No attendance records match your current filter criteria.</p>
+                <p>Try adjusting your filters or check if there are any records available.</p>
+            </div>
             {% endif %}
         </div>
     </div>
+
 </div>
 
 <style>
-/* Container */
 .attendance-container {
-    width: 100%;
-    max-width: 1200px;
+    max-width: 1400px;
     margin: 0 auto;
-    padding: 20px;
-    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    padding: 25px;
+    box-sizing: border-box;
 }
 
-/* Titles */
-.page-title {
-    font-size: 1.8rem;
-    font-weight: 600;
+.header-section {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.header-section h1 {
+    font-size: 2rem;
     color: #2c3e50;
-    margin-bottom: 20px;
+}
+
+.subtitle {
+    color: #7f8c8d;
 }
 
 .card {
-    background-color: #f8f9fa;
-    border-radius: 8px;
-    padding: 20px;
-    box-shadow: 0 3px 8px rgba(0,0,0,0.1);
+    background: #fff;
+    border-radius: 12px;
+    margin-bottom: 25px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    overflow: hidden;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .card-header {
-    font-weight: 600;
-    font-size: 1.2rem;
-    margin-bottom: 10px;
-    color: #34495e;
-    border-bottom: 1px solid #ddd;
-    padding-bottom: 10px;
+    background: #1976d2;
+    color: #fff;
+    padding: 12px 18px;
+    font-weight: bold;
 }
 
-/* Form Grid */
-.form-grid {
+.card-body {
+    padding: 25px;
+}
+
+.filter-form {
+    width: 100%;
+}
+
+.filter-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    grid-template-columns: repeat(4, 1fr);
     gap: 20px;
+    align-items: end;
 }
 
-.form-group {
+.filter-group {
     display: flex;
     flex-direction: column;
 }
 
-.form-label {
-    font-weight: 500;
-    margin-bottom: 5px;
-}
-
-.form-input {
-    padding: 10px;
-    border-radius: 5px;
-    border: 1px solid #ccc;
-    font-size: 0.95rem;
-}
-
-/* Submit button */
-.btn-submit {
-    padding: 10px 20px;
-    background-color: #2980b9;
-    color: white;
-    border: none;
-    border-radius: 5px;
+.filter-group label {
     font-weight: 600;
-    cursor: pointer;
-    transition: background-color 0.2s;
+    margin-bottom: 8px;
+    color: #333;
+    font-size: 0.9rem;
 }
 
-.btn-submit:hover {
-    background-color: #1c5980;
+.filter-group select,
+.filter-group input {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    box-sizing: border-box;
 }
 
 .form-actions {
@@ -149,43 +175,109 @@
     text-align: right;
 }
 
-/* Attendance Table */
-.table-responsive {
-    overflow-x: auto;
+.form-actions input[type="submit"] {
+    background: #1976d2;
+    color: #fff;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: background 0.3s;
+}
+
+.form-actions input[type="submit"]:hover {
+    background: #1565c0;
 }
 
 .attendance-table {
     width: 100%;
     border-collapse: collapse;
+    font-size: 0.9rem;
 }
 
-.attendance-table th, .attendance-table td {
-    padding: 12px 15px;
-    border: 1px solid #ddd;
+.attendance-table th,
+.attendance-table td {
+    padding: 12px;
+    border-bottom: 1px solid #eee;
     text-align: left;
 }
 
+.attendance-table thead {
+    background: #f5f5f5;
+}
+
 .attendance-table th {
-    background-color: #34495e;
-    color: white;
+    color: #1976d2;
     font-weight: 600;
 }
 
-.attendance-table tr:nth-child(even) {
-    background-color: #ecf0f1;
+.badge {
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    font-weight: bold;
+    color: #fff;
 }
 
-.attendance-table tr:hover {
-    background-color: #dcdde1;
+.badge.success {
+    background: #27ae60;
 }
 
-/* No records message */
-.no-records {
-    color: #c0392b;
-    font-weight: 500;
-    display: flex;
-    align-items: center;
-    gap: 8px;
+.badge.danger {
+    background: #e74c3c;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: #7f8c8d;
+}
+
+.empty-state i {
+    margin-bottom: 15px;
+    color: #bdc3c7;
+}
+
+.empty-state h3 {
+    margin-bottom: 10px;
+    color: #2c3e50;
+}
+
+.empty-state p {
+    margin-bottom: 5px;
+    line-height: 1.5;
+}
+
+@media (max-width: 1200px) {
+    .filter-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 15px;
+    }
+}
+
+@media (max-width: 768px) {
+    .attendance-container {
+        padding: 15px;
+    }
+    
+    .filter-grid {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+    
+    .card-body {
+        padding: 15px;
+    }
+    
+    .attendance-table {
+        font-size: 0.8rem;
+    }
+    
+    .attendance-table th,
+    .attendance-table td {
+        padding: 8px;
+    }
 }
 </style>
 {% endblock %}

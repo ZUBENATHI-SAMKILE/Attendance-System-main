@@ -1,8 +1,8 @@
-from flask import jsonify, render_template, redirect, url_for, flash, request, send_file, make_response
+from flask import jsonify, render_template, redirect, session, url_for, flash, request, send_file, make_response, Response
 import pandas as pd
 from app import app, db
 from app.models import ClassType, User, Role, FacialData, ClassSession, Module, Attendance, AttendanceStatus, Assignment, Enrollment
-from app.forms import LoginForm, SignupForm, ProfileForm, AttendanceFilterForm, MarksForm, AdminAddUserForm, AdminEditUserForm, AdminResetPasswordForm, BulkImportForm, AddModuleForm, EditModuleForm, AddClassForm, EditClassForm, EnrollStudentsForm, AdminAttendanceFilterForm, ReportForm, AssignLecturerForm, AssignModulesForm, EnrollModulesForm
+from app.forms import LoginForm, SignupForm, ProfileForm, AttendanceFilterForm, MarksForm, AdminAddUserForm, AdminEditUserForm, AdminResetPasswordForm, AddModuleForm, EditModuleForm, AddClassForm, EditClassForm, EnrollStudentsForm, AdminAttendanceFilterForm, ReportForm, AssignLecturerForm, AssignModulesForm, EnrollModulesForm
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 import os
@@ -393,6 +393,10 @@ def lecturer_view_attendance():
     lecturer_classes = ClassSession.query.filter_by(lecturer_id=current_user.user_id).order_by(ClassSession.class_date.desc()).all()
     form.class_id.choices = [(0, 'All Classes')] + [(c.class_id, f"{c.module.module_code} - {c.class_type.value} on {c.class_date}") for c in lecturer_classes]
     
+    # Populate student choices with name and number
+    students = User.query.filter_by(role=Role.student).all()
+    form.student_number.choices = [('', 'All Students')] + [(s.student_number, f"{s.full_name} ({s.student_number})") for s in students]
+
     # Base query with single join to ClassSession
     query = Attendance.query.join(ClassSession, ClassSession.class_id == Attendance.class_id).filter(ClassSession.lecturer_id == current_user.user_id)
     
@@ -821,20 +825,13 @@ def get_existing_attendance():
 @app.route('/admin/users', methods=['GET'])
 @login_required
 def admin_list_users():
-    print("DEBUG: admin_list_users route accessed")  # Debug line
     if current_user.role != Role.admin:
         flash('Access denied. Admin privileges required.', 'danger')
         return redirect(url_for('home'))
     
-    try:
-        students = User.query.filter_by(role=Role.student).all()
-        lecturers = User.query.filter_by(role=Role.lecturer).all()
-        print(f"DEBUG: Found {len(students)} students and {len(lecturers)} lecturers")  # Debug line
-        return render_template('admin_users.html', students=students, lecturers=lecturers)
-    except Exception as e:
-        print(f"ERROR in admin_list_users: {str(e)}")  # Debug line
-        flash('Error loading users.', 'danger')
-        return redirect(url_for('admin_dashboard'))
+    students = User.query.filter_by(role=Role.student).all()
+    lecturers = User.query.filter_by(role=Role.lecturer).all()
+    return render_template('admin_users.html', students=students, lecturers=lecturers)
 
 @app.route('/admin/add_user', methods=['GET', 'POST'])
 @login_required
@@ -844,13 +841,10 @@ def admin_add_user():
         return redirect(url_for('home'))
     
     form = AdminAddUserForm()
-    
-    # Set role choices
     form.role.choices = [(Role.student.value, 'Student'), (Role.lecturer.value, 'Lecturer')]
     
     if form.validate_on_submit():
         try:
-            # Check if email already exists
             existing_user = User.query.filter_by(email=form.email.data).first()
             if existing_user:
                 flash('Email already exists.', 'danger')
@@ -865,7 +859,6 @@ def admin_add_user():
             )
             
             if form.role.data == Role.student.value:
-                # Check if student number already exists
                 if not form.student_number.data:
                     flash('Student number is required for students.', 'danger')
                     return render_template('admin_add_user.html', form=form)
@@ -876,7 +869,6 @@ def admin_add_user():
                     return render_template('admin_add_user.html', form=form)
                 user.student_number = form.student_number.data
             else:
-                # Check if username already exists
                 if not form.username.data:
                     flash('Username is required for lecturers.', 'danger')
                     return render_template('admin_add_user.html', form=form)
@@ -895,7 +887,6 @@ def admin_add_user():
         except Exception as e:
             db.session.rollback()
             flash(f'Error adding user: {str(e)}', 'danger')
-            return render_template('admin_add_user.html', form=form)
     
     return render_template('admin_add_user.html', form=form)
 
@@ -905,11 +896,14 @@ def admin_edit_user(user_id):
     if current_user.role != Role.admin:
         flash('Access denied. Admin privileges required.', 'danger')
         return redirect(url_for('home'))
+    
     user = User.query.get_or_404(user_id)
     if user.role == Role.admin:
         flash('Cannot edit admin accounts.', 'danger')
         return redirect(url_for('admin_list_users'))
+    
     form = AdminEditUserForm()
+    
     if form.validate_on_submit():
         user.full_name = form.full_name.data
         user.email = form.email.data
@@ -917,9 +911,11 @@ def admin_edit_user(user_id):
             user.student_number = form.student_number.data
         else:
             user.username = form.username.data
+        
         db.session.commit()
         flash('User updated successfully!', 'success')
         return redirect(url_for('admin_list_users'))
+    
     elif request.method == 'GET':
         form.full_name.data = user.full_name
         form.email.data = user.email
@@ -927,6 +923,7 @@ def admin_edit_user(user_id):
             form.student_number.data = user.student_number
         else:
             form.username.data = user.username
+    
     return render_template('admin_edit_user.html', form=form, user=user)
 
 @app.route('/admin/delete_user/<int:user_id>', methods=['POST'])
@@ -943,41 +940,30 @@ def admin_delete_user(user_id):
         return redirect(url_for('admin_list_users'))
     
     try:
-        # Delete related records first
         if user.role == Role.student:
-            # Delete student's facial data
             FacialData.query.filter_by(student_id=user_id).delete()
-            # Delete student's attendance records
             Attendance.query.filter_by(student_id=user_id).delete()
-            # Delete student's enrollments
             Enrollment.query.filter_by(student_id=user_id).delete()
-        else:  # Lecturer
-            # Reassign classes to another lecturer or delete them
+        else:
             classes = ClassSession.query.filter_by(lecturer_id=user_id).all()
             if classes:
-                # Option 1: Reassign to admin or another lecturer
                 admin_user = User.query.filter_by(role=Role.admin).first()
                 if admin_user:
                     for class_session in classes:
                         class_session.lecturer_id = admin_user.user_id
                 else:
-                    # Option 2: Delete the classes and their attendance records
                     for class_session in classes:
                         Attendance.query.filter_by(class_id=class_session.class_id).delete()
                         db.session.delete(class_session)
-            
-            # Delete lecturer's assignments
             Assignment.query.filter_by(lecturer_id=user_id).delete()
         
-        # Now delete the user
         db.session.delete(user)
         db.session.commit()
         flash('User deleted successfully!', 'success')
         
     except Exception as e:
         db.session.rollback()
-        flash(f'Error deleting user: {str(e)}. This user may have related records that need to be handled first.', 'danger')
-        print(f"Delete user error: {str(e)}")  # Debug
+        flash(f'Error deleting user: {str(e)}', 'danger')
     
     return redirect(url_for('admin_list_users'))
 
@@ -987,53 +973,21 @@ def admin_reset_password(user_id):
     if current_user.role != Role.admin:
         flash('Access denied. Admin privileges required.', 'danger')
         return redirect(url_for('home'))
+    
     user = User.query.get_or_404(user_id)
     if user.role == Role.admin:
         flash('Cannot reset admin passwords.', 'danger')
         return redirect(url_for('admin_list_users'))
+    
     form = AdminResetPasswordForm()
+    
     if form.validate_on_submit():
         user.password_hash = generate_password_hash(form.password.data)
         db.session.commit()
         flash('Password reset successfully!', 'success')
         return redirect(url_for('admin_list_users'))
+    
     return render_template('admin_reset_password.html', form=form, user=user)
-
-@app.route('/admin/bulk_import', methods=['GET', 'POST'])
-@login_required
-def admin_bulk_import():
-    if current_user.role != Role.admin:
-        flash('Access denied. Admin privileges required.', 'danger')
-        return redirect(url_for('home'))
-    form = BulkImportForm()
-    if form.validate_on_submit():
-        file = form.file.data
-        df = pd.read_csv(file)
-        for _, row in df.iterrows():
-            try:
-                role = Role(row['role'].lower())
-                hashed_password = generate_password_hash(row['password'])
-                user = User(
-                    full_name=row['full_name'],
-                    email=row['email'],
-                    password_hash=hashed_password,
-                    role=role
-                )
-                if role == Role.student:
-                    user.student_number = row.get('student_number')
-                else:
-                    user.username = row.get('username')
-                db.session.add(user)
-                db.session.commit()
-            except IntegrityError:
-                db.session.rollback()
-                flash(f'Error importing {row["email"]}: Duplicate or invalid data.', 'danger')
-            except Exception as e:
-                db.session.rollback()
-                flash(f'Error importing {row["email"]}: {str(e)}', 'danger')
-        flash('Bulk import completed!', 'success')
-        return redirect(url_for('admin_list_users'))
-    return render_template('admin_bulk_import.html', form=form)
 
 # Admin Class/Course Management
 @app.route('/admin/modules', methods=['GET'])
@@ -1091,10 +1045,55 @@ def admin_delete_module(module_id):
     if current_user.role != Role.admin:
         flash('Access denied. Admin privileges required.', 'danger')
         return redirect(url_for('home'))
+    
     module = Module.query.get_or_404(module_id)
-    db.session.delete(module)
-    db.session.commit()
-    flash('Module deleted successfully!', 'success')
+    
+    try:
+        # Delete related records first
+        # 1. Delete assignments (lecturer assignments to this module)
+        Assignment.query.filter_by(module_id=module_id).delete()
+        
+        # 2. Delete enrollments (student enrollments in this module)
+        Enrollment.query.filter_by(module_id=module_id).delete()
+        
+        # 3. Get class sessions for this module and delete their attendance records
+        class_sessions = ClassSession.query.filter_by(module_id=module_id).all()
+        for class_session in class_sessions:
+            # Delete attendance records for each class session
+            Attendance.query.filter_by(class_id=class_session.class_id).delete()
+        
+        # 4. Delete the class sessions themselves
+        ClassSession.query.filter_by(module_id=module_id).delete()
+        
+        # 5. Finally delete the module
+        db.session.delete(module)
+        db.session.commit()
+        flash('Module deleted successfully!', 'success')
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error deleting module: {str(e)}', 'danger')
+        print(f"Delete module error: {str(e)}")
+    
+    return redirect(url_for('admin_list_modules'))
+
+@app.route('/admin/unassign_lecturer/<int:assignment_id>', methods=['POST'])
+@login_required
+def admin_unassign_lecturer(assignment_id):
+    if current_user.role != Role.admin:
+        flash('Access denied. Admin privileges required.', 'danger')
+        return redirect(url_for('home'))
+    
+    assignment = Assignment.query.get_or_404(assignment_id)
+    
+    try:
+        db.session.delete(assignment)
+        db.session.commit()
+        flash('Lecturer unassigned successfully!', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error unassigning lecturer: {str(e)}', 'danger')
+    
     return redirect(url_for('admin_list_modules'))
 
 @app.route('/admin/classes', methods=['GET'])
@@ -1256,24 +1255,37 @@ def admin_assign_modules_to_lecturer(lecturer_id):
     if current_user.role != Role.admin:
         flash('Access denied. Admin privileges required.', 'danger')
         return redirect(url_for('home'))
+    
     lecturer = User.query.get_or_404(lecturer_id)
     if lecturer.role != Role.lecturer:
         flash('Invalid lecturer.', 'danger')
         return redirect(url_for('admin_list_users'))
+    
     form = AssignModulesForm()
     form.modules.choices = [(m.module_id, f"{m.module_code} - {m.module_name}") for m in Module.query.all()]
+    
     if form.validate_on_submit():
-        selected_modules = form.modules.data  # FIXED: Use form data instead of request.form
+        selected_modules = form.modules.data  # This will now be a list of module IDs
+        
+        # Remove existing assignments for this lecturer
+        Assignment.query.filter_by(lecturer_id=lecturer_id).delete()
+        
+        # Add new assignments for selected modules
         for module_id in selected_modules:
-            existing = Assignment.query.filter_by(lecturer_id=lecturer_id, module_id=module_id).first()
-            if not existing:
-                assignment = Assignment(lecturer_id=lecturer_id, module_id=module_id)
-                db.session.add(assignment)
+            assignment = Assignment(lecturer_id=lecturer_id, module_id=module_id)
+            db.session.add(assignment)
+        
         db.session.commit()
         flash('Modules assigned to lecturer successfully!', 'success')
         return redirect(url_for('admin_list_users'))
-    existing_modules = [str(a.module_id) for a in Assignment.query.filter_by(lecturer_id=lecturer_id).all()]
-    return render_template('admin_assign_modules_to_lecturer.html', form=form, lecturer=lecturer, existing_modules=existing_modules)
+    
+    # Get currently assigned modules for pre-selection
+    existing_modules = [a.module_id for a in Assignment.query.filter_by(lecturer_id=lecturer_id).all()]
+    
+    return render_template('admin_assign_modules_to_lecturer.html', 
+                         form=form, 
+                         lecturer=lecturer, 
+                         existing_modules=existing_modules)
 
 # FIXED: Enroll Student in Modules Route - Corrected form handling
 @app.route('/admin/enroll_student_in_modules/<int:student_id>', methods=['GET', 'POST'])
@@ -1292,7 +1304,7 @@ def admin_enroll_student_in_modules(student_id):
     form.modules.choices = [(m.module_id, f"{m.module_code} - {m.module_name}") for m in Module.query.all()]
     
     if form.validate_on_submit():
-        selected_modules = form.modules.data  # FIXED: Use form data instead of request.form
+        selected_modules = form.modules.data
         
         if not selected_modules:
             flash('Please select at least one module to enroll the student in.', 'warning')
@@ -1315,8 +1327,52 @@ def admin_enroll_student_in_modules(student_id):
         
         return redirect(url_for('admin_list_users'))
     
-    existing_modules = [str(e.module_id) for e in Enrollment.query.filter_by(student_id=student_id).all()]
-    return render_template('admin_enroll_student_in_modules.html', form=form, student=student, existing_modules=existing_modules)
+    # FIX: Pre-fetch module objects instead of just IDs
+    enrollments = Enrollment.query.filter_by(student_id=student_id).all()
+    existing_module_objects = [enrollment.module for enrollment in enrollments]
+    
+    return render_template('admin_enroll_student_in_modules.html', 
+                         form=form, 
+                         student=student, 
+                         existing_module_objects=existing_module_objects)  # Changed variable name
+
+@app.route('/admin/unenroll_student/<int:student_id>/<int:module_id>', methods=['POST'])
+@login_required
+def admin_unenroll_student(student_id, module_id):
+    if current_user.role != Role.admin:
+        flash('Access denied. Admin privileges required.', 'danger')
+        return redirect(url_for('home'))
+    
+    try:
+        # Find the enrollment record
+        enrollment = Enrollment.query.filter_by(
+            student_id=student_id, 
+            module_id=module_id
+        ).first()
+        
+        if enrollment:
+            # Delete attendance records for this student in this module's classes
+            module_classes = ClassSession.query.filter_by(module_id=module_id).all()
+            class_ids = [c.class_id for c in module_classes]
+            
+            if class_ids:
+                Attendance.query.filter(
+                    Attendance.student_id == student_id,
+                    Attendance.class_id.in_(class_ids)
+                ).delete()
+            
+            # Delete the enrollment
+            db.session.delete(enrollment)
+            db.session.commit()
+            flash('Student unenrolled successfully!', 'success')
+        else:
+            flash('Enrollment record not found.', 'warning')
+            
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error unenrolling student: {str(e)}', 'danger')
+    
+    return redirect(url_for('admin_enroll_student_in_modules', student_id=student_id))
 
 # FIXED: Student Enrollments Route - Include enrollment_date
 @app.route('/admin/student_enrollments/<int:student_id>', methods=['GET'])
@@ -1343,10 +1399,24 @@ def admin_view_attendance():
     if current_user.role != Role.admin:
         flash('Access denied. Admin privileges required.', 'danger')
         return redirect(url_for('home'))
+    
     form = AdminAttendanceFilterForm()
     all_classes = ClassSession.query.order_by(ClassSession.class_date.desc()).all()
     form.class_id.choices = [(0, 'All Classes')] + [(c.class_id, f"{c.module.module_code} - {c.class_type.value} on {c.class_date}") for c in all_classes]
-    query = Attendance.query
+    
+    # Populate student choices with name and number
+    students = User.query.filter_by(role=Role.student).all()
+    form.student_number.choices = [('', 'All Students')] + [(s.student_number, f"{s.full_name} ({s.student_number})") for s in students]
+    
+    # Start with a base query that includes all necessary joins
+    query = db.session.query(Attendance).join(
+        User, Attendance.student_id == User.user_id
+    ).join(
+        ClassSession, Attendance.class_id == ClassSession.class_id
+    ).join(
+        Module, ClassSession.module_id == Module.module_id
+    )
+    
     if form.validate_on_submit():
         if form.class_id.data != 0:
             query = query.filter(Attendance.class_id == form.class_id.data)
@@ -1357,9 +1427,10 @@ def admin_view_attendance():
             else:
                 flash('Student not found.', 'warning')
         if form.date_from.data:
-            query = query.join(ClassSession).filter(ClassSession.class_date >= form.date_from.data)
+            query = query.filter(ClassSession.class_date >= form.date_from.data)
         if form.date_to.data:
-            query = query.join(ClassSession).filter(ClassSession.class_date <= form.date_to.data)
+            query = query.filter(ClassSession.class_date <= form.date_to.data)
+    
     attendances = query.order_by(Attendance.timestamp.desc()).all()
     return render_template('admin_view_attendance.html', form=form, attendances=attendances)
 
@@ -1369,36 +1440,174 @@ def admin_generate_report():
     if current_user.role != Role.admin:
         flash('Access denied. Admin privileges required.', 'danger')
         return redirect(url_for('home'))
+    
     form = ReportForm()
     form.class_id.choices = [(c.class_id, f"{c.module.module_code} - {c.class_type.value} on {c.class_date}") for c in ClassSession.query.all()]
     form.student_id.choices = [(s.user_id, f"{s.student_number} - {s.full_name}") for s in User.query.filter_by(role=Role.student).all()]
-    report_data = None
+    
+    report_data = []
+    report_type = None
+    filters = {}
+    
     if form.validate_on_submit():
-        query = Attendance.query
-        if form.type.data == 'class':
+        # Start with proper joins to ensure all relationships are available
+        query = db.session.query(Attendance).join(
+            User, Attendance.student_id == User.user_id
+        ).join(
+            ClassSession, Attendance.class_id == ClassSession.class_id
+        ).join(
+            Module, ClassSession.module_id == Module.module_id
+        )
+        
+        report_type = form.type.data
+        
+        if report_type == 'class':
             if form.class_id.data:
                 query = query.filter(Attendance.class_id == form.class_id.data)
-        elif form.type.data == 'student':
+                filters['class'] = ClassSession.query.get(form.class_id.data)
+            else:
+                flash('Please select a class for class-based report.', 'warning')
+                return render_template('admin_report.html', form=form, report_data=None)
+                
+        elif report_type == 'student':
             if form.student_id.data:
                 query = query.filter(Attendance.student_id == form.student_id.data)
-        elif form.type.data == 'date':
-            if form.date_from.data:
-                query = query.join(ClassSession).filter(ClassSession.class_date >= form.date_from.data)
-            if form.date_to.data:
-                query = query.join(ClassSession).filter(ClassSession.class_date <= form.date_to.data)
-        report_data = query.all()
-        # For CSV export
-        if request.args.get('export') == 'csv':
-            output = io.StringIO()
-            writer = csv.writer(output)
-            writer.writerow(['Attendance ID', 'Student Name', 'Class Date', 'Status'])
-            for att in report_data:
-                writer.writerow([att.attendance_id, att.student.full_name, att.class_session.class_date, att.attendance_status.value])
-            response = make_response(output.getvalue())
-            response.headers["Content-Disposition"] = "attachment; filename=report.csv"
-            response.headers["Content-type"] = "text/csv"
-            return response
-    return render_template('admin_report.html', form=form, report_data=report_data)
+                filters['student'] = User.query.get(form.student_id.data)
+                
+                if form.class_id.data:
+                    query = query.filter(Attendance.class_id == form.class_id.data)
+                    filters['class'] = ClassSession.query.get(form.class_id.data)
+            else:
+                flash('Please select a student for student-based report.', 'warning')
+                return render_template('admin_report.html', form=form, report_data=None)
+                
+        elif report_type == 'date':
+            if form.date_from.data and form.date_to.data:
+                if form.date_from.data > form.date_to.data:
+                    flash('End date must be after start date.', 'warning')
+                    return render_template('admin_report.html', form=form, report_data=None)
+                    
+                # Filter by class date range (not attendance timestamp)
+                query = query.filter(ClassSession.class_date >= form.date_from.data, 
+                                   ClassSession.class_date <= form.date_to.data)
+                filters['date_from'] = form.date_from.data
+                filters['date_to'] = form.date_to.data
+                
+                # Optional student filter for date range
+                if form.student_id.data:
+                    query = query.filter(Attendance.student_id == form.student_id.data)
+                    filters['student'] = User.query.get(form.student_id.data)
+                # Note: Class filter is intentionally removed for date range reports
+                # to allow viewing all classes within the date range
+            else:
+                flash('Please select both start and end dates for date range report.', 'warning')
+                return render_template('admin_report.html', form=form, report_data=None)
+        
+        report_data = query.order_by(ClassSession.class_date.desc(), Attendance.timestamp.desc()).all()
+    
+    return render_template('admin_report.html', form=form, report_data=report_data, report_type=report_type, filters=filters)
+
+@app.route('/admin/export_report_csv', methods=['POST'])
+@login_required
+def admin_export_report_csv():
+    """Export report data to CSV"""
+    if current_user.role != Role.admin:
+        flash('Access denied. Admin privileges required.', 'danger')
+        return redirect(url_for('home'))
+    
+    try:
+        # Get the filter parameters from the form data
+        report_type = request.form.get('report_type')
+        class_id = request.form.get('class_id', type=int)
+        student_id = request.form.get('student_id', type=int)
+        date_from_str = request.form.get('date_from')
+        date_to_str = request.form.get('date_to')
+        
+        # Reconstruct the query based on the parameters
+        query = db.session.query(Attendance).join(
+            User, Attendance.student_id == User.user_id
+        ).join(
+            ClassSession, Attendance.class_id == ClassSession.class_id
+        ).join(
+            Module, ClassSession.module_id == Module.module_id
+        )
+        
+        filters = {}
+        
+        if report_type == 'class' and class_id:
+            query = query.filter(Attendance.class_id == class_id)
+            filters['class'] = ClassSession.query.get(class_id)
+        elif report_type == 'student' and student_id:
+            query = query.filter(Attendance.student_id == student_id)
+            filters['student'] = User.query.get(student_id)
+            if class_id:
+                query = query.filter(Attendance.class_id == class_id)
+                filters['class'] = ClassSession.query.get(class_id)
+        elif report_type == 'date':
+            if date_from_str and date_to_str:
+                date_from = datetime.strptime(date_from_str, '%Y-%m-%d').date()
+                date_to = datetime.strptime(date_to_str, '%Y-%m-%d').date()
+                query = query.filter(ClassSession.class_date >= date_from, 
+                                   ClassSession.class_date <= date_to)
+                filters['date_from'] = date_from
+                filters['date_to'] = date_to
+                
+                # Only apply student filter if provided (class filter is ignored for date range)
+                if student_id:
+                    query = query.filter(Attendance.student_id == student_id)
+                    filters['student'] = User.query.get(student_id)
+        
+        report_data = query.order_by(ClassSession.class_date.desc(), Attendance.timestamp.desc()).all()
+        
+        # Create CSV output
+        output = io.StringIO()
+        writer = csv.writer(output)
+        
+        # Write header based on report type
+        header = []
+        if report_type == 'class' and 'class' in filters:
+            class_session = filters['class']
+            header = [f'Attendance Report for {class_session.module.module_code} - {class_session.class_type.value} on {class_session.class_date}']
+        elif report_type == 'student' and 'student' in filters:
+            student = filters['student']
+            header = [f'Attendance Report for {student.full_name} ({student.student_number})']
+            if 'class' in filters:
+                header.append(f'Filtered by Class: {filters["class"].module.module_code}')
+        elif report_type == 'date':
+            date_range = f"From {filters.get('date_from', 'N/A')} to {filters.get('date_to', 'N/A')}"
+            header = [f'Attendance Report for Date Range: {date_range}']
+            if filters.get('student'):
+                header.append(f'Filtered by Student: {filters["student"].full_name}')
+            if not filters.get('student'):
+                header.append(f'Filter: All students within date range')
+        
+        for line in header:
+            writer.writerow([line])
+        
+        writer.writerow([])  # Empty row
+        writer.writerow(['Student Name', 'Student Number', 'Module', 'Class Type', 'Class Date', 'Start Time', 'End Time', 'Status', 'Timestamp'])
+        
+        for att in report_data:
+            writer.writerow([
+                att.student.full_name,
+                att.student.student_number,
+                att.class_session.module.module_code,
+                att.class_session.class_type.value,
+                att.class_session.class_date.strftime('%Y-%m-%d') if att.class_session.class_date else 'N/A',
+                att.class_session.start_time.strftime('%H:%M') if att.class_session.start_time else 'N/A',
+                att.class_session.end_time.strftime('%H:%M') if att.class_session.end_time else 'N/A',
+                att.attendance_status.value,
+                att.timestamp.strftime('%Y-%m-%d %H:%M:%S') if att.timestamp else 'N/A'
+            ])
+        
+        response = make_response(output.getvalue())
+        response.headers["Content-Disposition"] = f"attachment; filename=attendance_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+        response.headers["Content-type"] = "text/csv"
+        return response
+        
+    except Exception as e:
+        flash(f'Error generating CSV export: {str(e)}', 'danger')
+        return redirect(url_for('admin_generate_report'))
 
 @app.route('/admin/analytics')
 @login_required

@@ -5,12 +5,31 @@
 <div class="enroll-container">
     <div class="card">
         <div class="card-header">
-            <h3><i class="fas fa-user-graduate"></i> Enroll {{ student.full_name }} in Modules</h3>
+            <h3><i class="fa fa-user-graduate"></i> Enroll {{ student.full_name }} in Modules</h3>
         </div>
         <div class="card-body">
             <div class="alert-info">
                 <strong>Student:</strong> {{ student.full_name }} ({{ student.student_number }})
             </div>
+
+            <!-- Show current enrollments with unenroll option -->
+            {% if existing_module_objects %}
+            <div class="current-enrollments">
+                <h4>Currently Enrolled In:</h4>
+                <ul class="enrollment-list">
+                    {% for module in existing_module_objects %}
+                    <li class="enrollment-item">
+                        <span><i class="fa fa-book"></i> {{ module.module_code }} - {{ module.module_name }}</span>
+                        <form method="POST" action="{{ url_for('admin_unenroll_student', student_id=student.user_id, module_id=module.module_id) }}" style="display:inline;">
+                            <button type="submit" class="btn-unenroll" onclick="return confirm('Unenroll student from {{ module.module_code }}?');">
+                                <i class="fa fa-times"></i> Unenroll
+                            </button>
+                        </form>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
 
             <form method="POST">
                 {{ form.hidden_tag() }}
@@ -28,23 +47,9 @@
                     {% endif %}
                 </div>
 
-                {% if existing_modules %}
-                <div class="form-group">
-                    <label class="form-label">Currently Enrolled In:</label>
-                    <div class="alert-warning enrolled-modules">
-                        {% for module_id in existing_modules %}
-                            {% set module = Module.query.get(module_id) %}
-                            {% if module %}
-                                <span class="badge"><i class="fas fa-book"></i> {{ module.module_code }}</span>
-                            {% endif %}
-                        {% endfor %}
-                    </div>
-                </div>
-                {% endif %}
-
                 <div class="form-actions">
                     <a href="{{ url_for('admin_list_users') }}" class="btn-cancel">
-                        <i class="fas fa-times"></i> Cancel
+                        <i class="fa fa-times"></i> Cancel
                     </a>
                     {{ form.submit(class="btn-submit") }}
                 </div>
@@ -81,16 +86,46 @@
     padding: 25px;
 }
 
-.alert-info, .alert-warning {
+.alert-info {
     background: #e3f2fd;
     border-radius: 8px;
     padding: 12px 15px;
     margin-bottom: 20px;
 }
 
-.alert-warning {
-    background: #fff3cd;
-    color: #856404;
+.current-enrollments {
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 8px;
+    border-left: 4px solid #3498db;
+    margin-bottom: 30px;
+}
+
+.current-enrollments h4 {
+    color: #2c3e50;
+    margin-bottom: 15px;
+    font-weight: 600;
+}
+
+.enrollment-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.enrollment-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 15px;
+    background: #fff;
+    border-radius: 6px;
+    margin-bottom: 8px;
+    border: 1px solid #e9ecef;
+}
+
+.enrollment-item:last-child {
+    margin-bottom: 0;
 }
 
 .form-group {
@@ -126,18 +161,6 @@
 
 .error-text small {
     color: #d32f2f;
-}
-
-.enrolled-modules .badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 5px 10px;
-    margin-right: 5px;
-    border-radius: 8px;
-    background: linear-gradient(135deg, #1976d2 0%, #42a5f5 100%);
-    color: white;
-    font-size: 13px;
 }
 
 .form-actions {
@@ -177,8 +200,24 @@
 .btn-submit:hover {
     background: linear-gradient(135deg, #1565c0 0%, #1e88e5 100%);
 }
-</style>
 
-<!-- Font Awesome -->
-<script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+.btn-unenroll {
+    background: #ff9800;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 6px 12px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.btn-unenroll:hover {
+    background: #f57c00;
+    transform: scale(1.05);
+}
+</style>
 {% endblock %}

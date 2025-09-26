@@ -1,71 +1,11 @@
 {% extends "base.html" %}
 {% block title %}Generate Report{% endblock %}
+
 {% block content %}
-<div class="report-container">
-    <h1 class="page-title">Generate Attendance Report</h1>
-
-    <form method="POST" class="report-form">
-        {{ form.hidden_tag() }}
-
-        <div class="form-group">
-            {{ form.type.label(class="form-label") }}
-            {{ form.type(class="form-input") }}
-        </div>
-
-        <div class="form-group">
-            {{ form.class_id.label(class="form-label") }}
-            {{ form.class_id(class="form-input") }}
-        </div>
-
-        <div class="form-group">
-            {{ form.student_id.label(class="form-label") }}
-            {{ form.student_id(class="form-input") }}
-        </div>
-
-        <div class="form-group">
-            {{ form.date_from.label(class="form-label") }}
-            {{ form.date_from(class="form-input") }}
-        </div>
-
-        <div class="form-group">
-            {{ form.date_to.label(class="form-label") }}
-            {{ form.date_to(class="form-input") }}
-        </div>
-
-        {{ form.submit(class="btn-submit") }}
-    </form>
-
-    {% if report_data %}
-    <div class="report-results">
-        <h2 class="section-title">Report Results</h2>
-        <a href="?export=csv" class="btn-secondary">Export to CSV</a>
-
-        <table class="report-table">
-            <thead>
-                <tr>
-                    <th>Student</th>
-                    <th>Class</th>
-                    <th>Status</th>
-                    <th>Timestamp</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for att in report_data %}
-                <tr>
-                    <td>{{ att.student.full_name }}</td>
-                    <td>{{ att.class_session.module.module_code }} - {{ att.class_session.class_date }}</td>
-                    <td>{{ att.attendance_status.value }}</td>
-                    <td>{{ att.timestamp }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-    {% endif %}
-</div>
-<style> 
-    .report-container {
-    max-width: 800px;
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+<style>
+.report-container {
+    max-width: 1200px;
     margin: 40px auto;
     padding: 20px;
     background: #fff;
@@ -83,6 +23,15 @@
     margin-bottom: 15px;
 }
 
+.form-row {
+    display: flex;
+    gap: 15px;
+}
+
+.form-row .form-group {
+    flex: 1;
+}
+
 .form-label {
     display: block;
     margin-bottom: 6px;
@@ -98,43 +47,83 @@
     font-size: 14px;
 }
 
-.btn-submit {
-    display: inline-block;
-    background: #4CAF50;
-    color: #fff;
-    padding: 10px 18px;
+.form-buttons {
+    display: flex;
+    gap: 15px;
+    margin-top: 20px;
+    align-items: center;
+}
+
+.btn-submit, .btn-export {
+    display: inline-flex;
+    align-items: center;
+    padding: 12px 24px;
     border: none;
     border-radius: 6px;
     cursor: pointer;
     font-size: 14px;
-    margin-top: 10px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: background 0.3s;
 }
+
+.btn-submit {
+    background: #4CAF50;
+    color: #fff;
+}
+
 .btn-submit:hover {
     background: #45a049;
 }
 
-.btn-secondary {
-    display: inline-block;
+.btn-export {
     background: #2196F3;
     color: #fff;
-    padding: 8px 14px;
-    border-radius: 6px;
-    text-decoration: none;
-    font-size: 13px;
-    margin-bottom: 15px;
 }
-.btn-secondary:hover {
+
+.btn-export:hover {
     background: #1976D2;
+}
+
+.btn-submit i, .btn-export i {
+    margin-right: 8px;
 }
 
 .report-results {
     margin-top: 30px;
+    border-top: 2px solid #eee;
+    padding-top: 20px;
+}
+
+.report-summary {
+    background: #f9f9f9;
+    padding: 15px;
+    border-radius: 6px;
+    margin-bottom: 20px;
+    border-left: 4px solid #2196F3;
+}
+
+.report-summary h3 {
+    margin-top: 0;
+    color: #333;
+    border-bottom: 1px solid #ddd;
+    padding-bottom: 8px;
+}
+
+.report-summary p {
+    margin: 5px 0;
+}
+
+.table-container {
+    overflow-x: auto;
+    margin-top: 20px;
 }
 
 .report-table {
     width: 100%;
     border-collapse: collapse;
-    margin-top: 10px;
+    font-size: 14px;
+    min-width: 800px;
 }
 
 .report-table th, .report-table td {
@@ -145,7 +134,342 @@
 
 .report-table th {
     background: #f4f4f4;
+    font-weight: 600;
+    position: sticky;
+    top: 0;
 }
 
+.report-table tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+
+.report-table tr:hover {
+    background-color: #f0f0f0;
+}
+
+.status-present {
+    color: #4CAF50;
+    font-weight: 600;
+}
+
+.status-absent {
+    color: #f44336;
+    font-weight: 600;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: #7f8c8d;
+    background: #f9f9f9;
+    border-radius: 6px;
+    margin-top: 20px;
+}
+
+.empty-state i {
+    margin-bottom: 15px;
+    color: #bdc3c7;
+}
+
+.empty-state h3 {
+    margin-bottom: 10px;
+    color: #2c3e50;
+}
+
+.empty-state p {
+    margin-bottom: 5px;
+    line-height: 1.5;
+}
+
+.section-title {
+    border-bottom: 2px solid #333;
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+    color: #333;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .report-container {
+        margin: 20px;
+        padding: 15px;
+    }
+    
+    .form-row {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .form-buttons {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .btn-submit, .btn-export {
+        width: 100%;
+        text-align: center;
+    }
+    
+    .report-table {
+        font-size: 12px;
+    }
+    
+    .report-table th, .report-table td {
+        padding: 6px;
+    }
+}
 </style>
+
+<div class="report-container">
+    <h1 class="page-title">Generate Attendance Report</h1>
+
+    <form method="POST" class="report-form" id="report-form">
+        {{ form.hidden_tag() }}
+
+        <div class="form-group">
+            {{ form.type.label(class="form-label") }}
+            {{ form.type(class="form-input", id="report-type") }}
+        </div>
+
+        <div class="form-group" id="class-group">
+            {{ form.class_id.label(class="form-label") }}
+            {{ form.class_id(class="form-input") }}
+        </div>
+
+        <div class="form-group" id="student-group">
+            {{ form.student_id.label(class="form-label") }}
+            {{ form.student_id(class="form-input") }}
+        </div>
+
+        <div class="form-row">
+            <div class="form-group" id="date-from-group">
+                {{ form.date_from.label(class="form-label") }}
+                {{ form.date_from(class="form-input") }}
+            </div>
+
+            <div class="form-group" id="date-to-group">
+                {{ form.date_to.label(class="form-label") }}
+                {{ form.date_to(class="form-input") }}
+            </div>
+        </div>
+
+        <div class="form-buttons">
+            <button type="submit" class="btn-submit" id="generate-btn">
+                <i class="fa fa-refresh"></i> Generate Report
+            </button>
+            
+            {% if report_data is not none and report_type %}
+            <button type="button" class="btn-export" id="export-csv-btn">
+                <i class="fa fa-download"></i> Export to CSV
+            </button>
+            {% endif %}
+        </div>
+    </form>
+
+    {% if report_data is not none and report_type %}
+    <div class="report-results">
+        <h2 class="section-title">Report Results</h2>
+
+        <div class="report-summary">
+            <h3>Report Summary</h3>
+            {% if report_type == 'class' and filters.class %}
+                <p><strong>Report Type:</strong> Class-based Report</p>
+                <p><strong>Class:</strong> {{ filters.class.module.module_code }} - {{ filters.class.class_type.value }}</p>
+                <p><strong>Date:</strong> {{ filters.class.class_date }} | <strong>Time:</strong> {{ filters.class.start_time }} - {{ filters.class.end_time }}</p>
+                <p><strong>Lecturer:</strong> {{ filters.class.lecturer.full_name }}</p>
+            {% elif report_type == 'student' and filters.student %}
+                <p><strong>Report Type:</strong> Student-based Report</p>
+                <p><strong>Student:</strong> {{ filters.student.full_name }}</p>
+                <p><strong>Student Number:</strong> {{ filters.student.student_number }}</p>
+                {% if filters.class %}
+                <p><strong>Filtered by Class:</strong> {{ filters.class.module.module_code }} - {{ filters.class.class_date }}</p>
+                {% else %}
+                <p><strong>Filter:</strong> All classes for this student</p>
+                {% endif %}
+            {% elif report_type == 'date' %}
+                <p><strong>Report Type:</strong> Date Range Report</p>
+                <p><strong>Date Range:</strong> {{ filters.date_from }} to {{ filters.date_to }}</p>
+                {% if filters.class %}
+                <p><strong>Filtered by Class:</strong> {{ filters.class.module.module_code }}</p>
+                {% endif %}
+                {% if filters.student %}
+                <p><strong>Filtered by Student:</strong> {{ filters.student.full_name }}</p>
+                {% endif %}
+                {% if not filters.class and not filters.student %}
+                <p><strong>Filter:</strong> All classes and students within date range</p>
+                {% endif %}
+            {% endif %}
+            <p><strong>Total Records:</strong> {{ report_data|length }}</p>
+        </div>
+
+        {% if report_data %}
+        <div class="table-container">
+            <table class="report-table">
+                <thead>
+                    <tr>
+                        <th>Student Name</th>
+                        <th>Student Number</th>
+                        <th>Module</th>
+                        <th>Class Type</th>
+                        <th>Class Date</th>
+                        <th>Status</th>
+                        <th>Timestamp</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for att in report_data %}
+                    <tr>
+                        <td>{{ att.student.full_name }}</td>
+                        <td>{{ att.student.student_number }}</td>
+                        <td>{{ att.class_session.module.module_code }}</td>
+                        <td>{{ att.class_session.class_type.value }}</td>
+                        <td>{{ att.class_session.class_date }}</td>
+                        <td>
+                            <span class="status-{{ att.attendance_status.value }}">
+                                {{ att.attendance_status.value|title }}
+                            </span>
+                        </td>
+                        <td>{{ att.timestamp.strftime('%Y-%m-%d %H:%M:%S') if att.timestamp else 'N/A' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <i class="fa fa-clipboard-list fa-3x"></i>
+            <h3>No Attendance Records Found</h3>
+            <p>No attendance records match your current report criteria.</p>
+            <p>Try adjusting your filters or check if there are any records available for the selected parameters.</p>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+<!-- Hidden form for CSV export -->
+<form id="csv-export-form" method="POST" action="{{ url_for('admin_export_report_csv') }}" style="display: none;">
+    <input type="hidden" name="report_type" id="export-report-type">
+    <input type="hidden" name="class_id" id="export-class-id">
+    <input type="hidden" name="student_id" id="export-student-id">
+    <input type="hidden" name="date_from" id="export-date-from">
+    <input type="hidden" name="date_to" id="export-date-to">
+</form>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const reportType = document.getElementById('report-type');
+    const classGroup = document.getElementById('class-group');
+    const studentGroup = document.getElementById('student-group');
+    const dateFromGroup = document.getElementById('date-from-group');
+    const dateToGroup = document.getElementById('date-to-group');
+    const classSelect = document.querySelector('select[name="class_id"]');
+    const studentSelect = document.querySelector('select[name="student_id"]');
+    const dateFromInput = document.querySelector('input[name="date_from"]');
+    const dateToInput = document.querySelector('input[name="date_to"]');
+    
+    const exportForm = document.getElementById('csv-export-form');
+    const exportReportType = document.getElementById('export-report-type');
+    const exportClassId = document.getElementById('export-class-id');
+    const exportStudentId = document.getElementById('export-student-id');
+    const exportDateFrom = document.getElementById('export-date-from');
+    const exportDateTo = document.getElementById('export-date-to');
+    
+    const exportCsvBtn = document.getElementById('export-csv-btn');
+
+    function updateFormVisibility() {
+        const type = reportType.value;
+
+        // Hide all groups first
+        classGroup.style.display = 'none';
+        studentGroup.style.display = 'none';
+        dateFromGroup.style.display = 'none';
+        dateToGroup.style.display = 'none';
+
+        // Show groups based on report type
+        if (type === 'class') {
+            classGroup.style.display = 'block';
+            // Make class required
+            classSelect.required = true;
+            studentSelect.required = false;
+            dateFromInput.required = false;
+            dateToInput.required = false;
+        } else if (type === 'student') {
+            classGroup.style.display = 'block';
+            studentGroup.style.display = 'block';
+            // Make student required, class optional
+            classSelect.required = false;
+            studentSelect.required = true;
+            dateFromInput.required = false;
+            dateToInput.required = false;
+        } else if (type === 'date') {
+            // For date range, only show date fields and optional student field
+            studentGroup.style.display = 'block';
+            dateFromGroup.style.display = 'block';
+            dateToGroup.style.display = 'block';
+            // Make dates required, student optional, hide class selection
+            classSelect.required = false;
+            studentSelect.required = false;
+            dateFromInput.required = true;
+            dateToInput.required = true;
+        }
+    }
+
+    // Update form visibility when type changes
+    reportType.addEventListener('change', updateFormVisibility);
+    
+    // Initial setup
+    updateFormVisibility();
+
+    // Add client-side validation
+    const form = document.getElementById('report-form');
+    form.addEventListener('submit', function(e) {
+        const type = reportType.value;
+        
+        let isValid = true;
+        let errorMessage = '';
+        
+        if (type === 'class') {
+            if (!classSelect.value) {
+                isValid = false;
+                errorMessage = 'Please select a class for class-based report.';
+            }
+        } else if (type === 'student') {
+            if (!studentSelect.value) {
+                isValid = false;
+                errorMessage = 'Please select a student for student-based report.';
+            }
+        } else if (type === 'date') {
+            if (!dateFromInput.value || !dateToInput.value) {
+                isValid = false;
+                errorMessage = 'Please select both start and end dates for date range report.';
+            } else if (new Date(dateFromInput.value) > new Date(dateToInput.value)) {
+                isValid = false;
+                errorMessage = 'End date must be after start date.';
+            }
+        }
+        
+        if (!isValid) {
+            e.preventDefault();
+            alert(errorMessage);
+            return false;
+        }
+    });
+    
+    // CSV Export functionality
+    if (exportCsvBtn) {
+        exportCsvBtn.addEventListener('click', function() {
+            // Populate the export form with current filter values
+            exportReportType.value = reportType.value;
+            exportClassId.value = classSelect.value || '';
+            exportStudentId.value = studentSelect.value || '';
+            exportDateFrom.value = dateFromInput.value || '';
+            exportDateTo.value = dateToInput.value || '';
+            
+            // Submit the export form
+            exportForm.submit();
+        });
+    }
+});
+</script>
 {% endblock %}

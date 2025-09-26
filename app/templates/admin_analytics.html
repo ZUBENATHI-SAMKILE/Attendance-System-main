@@ -3,32 +3,32 @@
 
 {% block content %}
 <div class="container">
-    <h1><i class="fa-solid fa-chart-line"></i> System Analytics</h1>
+    <h1><i class="fa fa-bar-chart"></i> System Analytics</h1>
 
     <div class="stats-cards">
         <div class="card">
-            <div class="card-icon bg-primary"><i class="fa-solid fa-user-graduate"></i></div>
+            <div class="card-icon bg-primary"><i class="fa fa-graduation-cap"></i></div>
             <div class="card-info">
                 <h3>{{ total_students }}</h3>
                 <p>Total Students</p>
             </div>
         </div>
         <div class="card">
-            <div class="card-icon bg-success"><i class="fa-solid fa-chalkboard-teacher"></i></div>
+            <div class="card-icon bg-success"><i class="fa fa-user-md"></i></div>
             <div class="card-info">
                 <h3>{{ total_lecturers }}</h3>
                 <p>Total Lecturers</p>
             </div>
         </div>
         <div class="card">
-            <div class="card-icon bg-info"><i class="fa-solid fa-school"></i></div>
+            <div class="card-icon bg-info"><i class="fa fa-calendar"></i></div>
             <div class="card-info">
                 <h3>{{ total_classes }}</h3>
                 <p>Total Classes</p>
             </div>
         </div>
         <div class="card">
-            <div class="card-icon bg-warning"><i class="fa-solid fa-percent"></i></div>
+            <div class="card-icon bg-warning"><i class="fa fa-percent"></i></div>
             <div class="card-info">
                 <h3>{{ avg_attendance }}%</h3>
                 <p>Average Attendance</p>
@@ -58,7 +58,6 @@
 </div>
 
 <style>
-/* Stats Cards */
 .stats-cards {
     display: flex;
     flex-wrap: wrap;
@@ -98,7 +97,6 @@
     color: #555;
 }
 
-/* Table */
 .table-custom {
     width: 100%;
     border-collapse: collapse;
@@ -114,14 +112,5 @@
     color: white;
     border: none;
 }
-
-/* Font Awesome fallback */
-@font-face {
-    font-family: 'Font Awesome 6 Free';
-    font-style: normal;
-    font-weight: 900;
-    src: url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/webfonts/fa-solid-900.woff2') format('woff2');
-}
-.fa-solid { font-family: 'Font Awesome 6 Free'; font-weight: 900; }
 </style>
 {% endblock %}

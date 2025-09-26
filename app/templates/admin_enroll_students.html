@@ -5,7 +5,7 @@
 <div class="enroll-container">
     <div class="card">
         <div class="card-header">
-            <h3><i class="fas fa-user-plus"></i> Enroll Students in Module</h3>
+            <h3><i class="fa fa-user-plus"></i> Enroll Students in Module</h3>
         </div>
         <div class="card-body">
             <form method="POST">
@@ -38,7 +38,7 @@
 
                 <div class="form-actions">
                     <a href="{{ url_for('admin_list_modules') }}" class="btn-cancel">
-                        <i class="fas fa-times"></i> Cancel
+                        <i class="fa fa-times"></i> Cancel
                     </a>
                     {{ form.submit(class="btn-submit") }}
                 </div>
@@ -147,9 +147,5 @@
 .btn-submit:hover {
     background: linear-gradient(135deg, #1565c0 0%, #1e88e5 100%);
 }
-
 </style>
-
-<!-- Font Awesome -->
-<script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
 {% endblock %}

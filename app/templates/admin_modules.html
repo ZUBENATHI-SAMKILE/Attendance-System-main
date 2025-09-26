@@ -2,9 +2,11 @@
 {% block title %}Manage Modules{% endblock %}
 {% block content %}
 <div class="modules-container">
-    <h1 class="page-title">Manage Modules</h1>
+    <h1 class="page-title"><i class="fa fa-book"></i> Manage Modules</h1>
 
-    <a href="{{ url_for('admin_add_module') }}" class="btn-primary">+ Add Module</a>
+    <a href="{{ url_for('admin_add_module') }}" class="btn-primary">
+        <i class="fa fa-plus"></i> Add Module
+    </a>
 
     <table class="modules-table">
         <thead>
@@ -12,6 +14,7 @@
                 <th>Code</th>
                 <th>Name</th>
                 <th>Description</th>
+                <th>Assigned Lecturers</th>
                 <th>Actions</th>
             </tr>
         </thead>
@@ -21,14 +24,39 @@
                 <td>{{ module.module_code }}</td>
                 <td>{{ module.module_name }}</td>
                 <td>{{ module.description }}</td>
+                <td>
+                    {% set assignments = module.assignments %}
+                    {% if assignments %}
+                        <ul class="lecturer-list">
+                            {% for assignment in assignments %}
+                            <li>
+                                {{ assignment.lecturer.full_name }}
+                                <form method="POST" action="{{ url_for('admin_unassign_lecturer', assignment_id=assignment.assignment_id) }}" style="display:inline;">
+                                    <button type="submit" class="btn-unassign" onclick="return confirm('Unassign this lecturer?');" title="Unassign Lecturer">
+                                        <i class="fa fa-times"></i>
+                                    </button>
+                                </form>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <span class="text-muted">Not assigned</span>
+                    {% endif %}
+                </td>
                 <td class="actions">
-                    <a href="{{ url_for('admin_edit_module', module_id=module.module_id) }}" class="btn-info">Edit</a>
+                    <a href="{{ url_for('admin_edit_module', module_id=module.module_id) }}" class="btn-info">
+                        <i class="fa fa-edit"></i> Edit
+                    </a>
                     
                     <form method="POST" action="{{ url_for('admin_delete_module', module_id=module.module_id) }}" style="display:inline;">
-                        <button type="submit" class="btn-danger" onclick="return confirm('Are you sure?');">Delete</button>
+                        <button type="submit" class="btn-danger" onclick="return confirm('Are you sure? This will also unassign all lecturers from this module.');">
+                            <i class="fa fa-trash"></i> Delete
+                        </button>
                     </form>
                     
-                    <a href="{{ url_for('admin_assign_lecturer', module_id=module.module_id) }}" class="btn-secondary">Assign Lecturer</a>
+                    <a href="{{ url_for('admin_assign_lecturer', module_id=module.module_id) }}" class="btn-secondary">
+                        <i class="fa fa-user-plus"></i> Assign Lecturer
+                    </a>
                 </td>
             </tr>
             {% endfor %}
@@ -36,93 +64,185 @@
     </table>
 </div>
 <style>
-    .modules-container {
-    max-width: 1000px;
+.modules-container {
+    max-width: 1200px;
     margin: 40px auto;
-    padding: 20px;
+    padding: 30px;
     background: #fff;
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
 }
 
 .page-title {
     text-align: center;
-    margin-bottom: 20px;
-    color: #333;
+    margin-bottom: 30px;
+    color: #2c3e50;
+    font-weight: 600;
+    font-size: 2.2rem;
+}
+
+.page-title .fa {
+    color: #3498db;
+    margin-right: 10px;
 }
 
 .modules-table {
     width: 100%;
     border-collapse: collapse;
-    margin-top: 15px;
+    margin-top: 25px;
+    font-size: 14px;
 }
 
 .modules-table th, 
 .modules-table td {
-    padding: 10px 12px;
-    border: 1px solid #ddd;
+    padding: 15px 12px;
+    border: 1px solid #e9ecef;
     text-align: left;
-    font-size: 14px;
 }
 
 .modules-table th {
-    background: #f4f4f4;
+    background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+    color: #fff;
     font-weight: 600;
+    font-size: 15px;
 }
 
 .modules-table tr:nth-child(even) {
-    background: #fafafa;
+    background: #f8f9fa;
+}
+
+.modules-table tr:hover {
+    background: #e3f2fd;
+    transition: background 0.3s ease;
 }
 
 .actions {
     display: flex;
     gap: 8px;
     align-items: center;
+    flex-wrap: wrap;
+}
+
+.lecturer-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.lecturer-list li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    padding: 8px 12px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    border-left: 3px solid #3498db;
+}
+
+.lecturer-list li:last-child {
+    margin-bottom: 0;
 }
 
 /* Buttons */
 .btn-primary {
-    display: inline-block;
-    background: #4CAF50;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
     color: #fff;
-    padding: 8px 14px;
-    border-radius: 6px;
+    padding: 12px 20px;
+    border-radius: 8px;
     text-decoration: none;
-    font-size: 14px;
-    margin-bottom: 12px;
+    font-weight: 600;
+    margin-bottom: 20px;
+    transition: all 0.3s ease;
 }
-.btn-primary:hover { background: #45a049; }
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(76, 175, 80, 0.3);
+}
 
 .btn-info {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
     background: #2196F3;
     color: #fff;
-    padding: 6px 12px;
+    padding: 8px 12px;
     border-radius: 6px;
     text-decoration: none;
     font-size: 13px;
+    transition: all 0.3s ease;
 }
-.btn-info:hover { background: #1976D2; }
+
+.btn-info:hover {
+    background: #1976D2;
+    transform: translateY(-1px);
+}
 
 .btn-danger {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
     background: #F44336;
     color: #fff;
-    padding: 6px 12px;
+    padding: 8px 12px;
     border: none;
     border-radius: 6px;
     cursor: pointer;
     font-size: 13px;
+    transition: all 0.3s ease;
 }
-.btn-danger:hover { background: #D32F2F; }
+
+.btn-danger:hover {
+    background: #D32F2F;
+    transform: translateY(-1px);
+}
 
 .btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
     background: #9E9E9E;
     color: #fff;
-    padding: 6px 12px;
+    padding: 8px 12px;
     border-radius: 6px;
     text-decoration: none;
     font-size: 13px;
+    transition: all 0.3s ease;
 }
-.btn-secondary:hover { background: #757575; }
 
+.btn-secondary:hover {
+    background: #757575;
+    transform: translateY(-1px);
+}
+
+.btn-unassign {
+    background: #ff9800;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 4px 8px;
+    cursor: pointer;
+    font-size: 11px;
+    margin-left: 8px;
+    transition: all 0.3s ease;
+}
+
+.btn-unassign:hover {
+    background: #f57c00;
+    transform: scale(1.05);
+}
+
+.text-muted {
+    color: #6c757d;
+    font-style: italic;
+}
+
+.fa {
+    margin-right: 5px;
+}
 </style>
 {% endblock %}

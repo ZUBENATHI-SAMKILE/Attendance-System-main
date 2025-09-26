@@ -2,66 +2,116 @@
 {% block title %}Add Module{% endblock %}
 
 {% block content %}
-<h1><i class="fa-solid fa-book-medical"></i> Add Module</h1>
+<div class="edit-container">
+    <div class="card">
+        <div class="card-header">
+            <h3><i class="fa fa-book-medical"></i> Add Module</h3>
+        </div>
+        <div class="card-body">
+            <form method="POST">
+                {{ form.hidden_tag() }}
 
-<form method="POST">
-    {{ form.hidden_tag() }}
+                <div class="form-group">
+                    {{ form.module_code.label(class="form-label") }}
+                    {{ form.module_code(class="form-control") }}
+                </div>
 
-    <div class="form-group">
-        {{ form.module_code.label }} <br>
-        {{ form.module_code(class="input-field") }}
+                <div class="form-group">
+                    {{ form.module_name.label(class="form-label") }}
+                    {{ form.module_name(class="form-control") }}
+                </div>
+
+                <div class="form-group">
+                    {{ form.description.label(class="form-label") }}
+                    {{ form.description(class="form-control") }}
+                </div>
+
+                <div class="form-actions">
+                    {{ form.submit(class="btn-submit") }}
+                </div>
+            </form>
+        </div>
     </div>
-
-    <div class="form-group">
-        {{ form.module_name.label }} <br>
-        {{ form.module_name(class="input-field") }}
-    </div>
-
-    <div class="form-group">
-        {{ form.description.label }} <br>
-        {{ form.description(class="input-field") }}
-    </div>
-
-    {{ form.submit(class="btn btn-primary-custom") }}
-</form>
+</div>
 
 <style>
-/* Input Fields */
-.input-field {
+.edit-container {
+    max-width: 600px;
+    margin: 50px auto;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.card {
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    overflow: hidden;
+}
+
+.card-header {
+    background: linear-gradient(135deg, #1976d2 0%, #42a5f5 100%);
+    color: #fff;
+    padding: 20px;
+    font-size: 1.3rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.card-body {
+    padding: 25px;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 600;
+}
+
+.form-control {
     width: 100%;
     padding: 10px 12px;
-    margin: 8px 0 20px 0;
-    border: 1px solid #ccc;
     border-radius: 8px;
-    font-size: 1rem;
+    border: 1px solid #ccc;
+    font-size: 14px;
+    font-family: inherit;
 }
 
-/* Button Styling */
-.btn-primary-custom {
+.form-control:focus {
+    outline: none;
+    border-color: #1976d2;
+    box-shadow: 0 0 5px rgba(25,118,210,0.3);
+}
+
+.form-actions {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.btn-submit {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
-    background: linear-gradient(135deg, #1976d2 0%, #42a5f5 100%);
-    color: white;
+    gap: 6px;
+    padding: 10px 18px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: none;
     border: none;
-    padding: 12px 25px;
-    border-radius: 12px;
-    font-size: 1rem;
     cursor: pointer;
+    background: linear-gradient(135deg, #1976d2 0%, #42a5f5 100%);
+    color: #fff;
     transition: all 0.3s ease;
 }
-.btn-primary-custom:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 18px rgba(25, 118, 210, 0.3);
-}
 
-/* Font Awesome fallback */
-@font-face {
-    font-family: 'Font Awesome 6 Free';
-    font-style: normal;
-    font-weight: 900;
-    src: url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/webfonts/fa-solid-900.woff2') format('woff2');
+.btn-submit:hover {
+    background: linear-gradient(135deg, #1565c0 0%, #1e88e5 100%);
 }
-.fa-solid { font-family: 'Font Awesome 6 Free'; font-weight: 900; }
 </style>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css"></script>
 {% endblock %}

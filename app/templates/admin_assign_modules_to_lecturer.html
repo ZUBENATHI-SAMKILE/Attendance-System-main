@@ -2,94 +2,203 @@
 {% block title %}Assign Modules to Lecturer{% endblock %}
 
 {% block content %}
-<div class="container">
-    <h1><i class="fa-solid fa-chalkboard-teacher"></i> Assign Modules to {{ lecturer.full_name }}</h1>
-
-    <form method="POST">
-        {{ form.hidden_tag() }}
-
-        <div class="mb-3">
-            {{ form.modules.label(class="form-label") }}
-            {{ form.modules(class="form-select", multiple="multiple", size=10, **{'data-existing': existing_modules | tojson }) }}
-            {% if form.modules.errors %}
-                <div class="text-danger mt-1">
-                    {% for error in form.modules.errors %}
-                        <small>{{ error }}</small>
-                    {% endfor %}
-                </div>
-            {% endif %}
-            <div class="form-text">Hold Ctrl/Cmd to select multiple modules</div>
+<div class="assign-container">
+    <div class="card">
+        <div class="card-header">
+            <h3><i class="fa fa-chalkboard-teacher"></i> Assign Modules to {{ lecturer.full_name }}</h3>
         </div>
+        <div class="card-body">
+            <form method="POST">
+                {{ form.hidden_tag() }}
 
-        {{ form.submit(class="btn btn-primary-custom") }}
-        <a href="{{ url_for('admin_list_users') }}" class="btn btn-secondary-custom ms-2">
-            <i class="fa-solid fa-arrow-left"></i> Back
-        </a>
-    </form>
+                <div class="form-group">
+                    {{ form.modules.label(class="form-label") }}
+                    {{ form.modules(class="form-control", multiple="multiple", size=8) }}
+                    {% if form.modules.errors %}
+                        <div class="text-danger">
+                            {% for error in form.modules.errors %}
+                                <small>{{ error }}</small>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                    <div class="form-text">
+                        <i class="fa fa-info-circle"></i> Hold Ctrl/Cmd to select multiple modules
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn-submit">
+                        <i class="fa fa-save"></i> Assign Modules
+                    </button>
+                    <a href="{{ url_for('admin_list_users') }}" class="btn-cancel">
+                        <i class="fa fa-arrow-left"></i> Back to Users
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
 
 <script>
-    var select = document.querySelector('select[name="modules"]');
-    var existing = JSON.parse(select.dataset.existing);
-    for (var option of select.options) {
-        if (existing.includes(option.value)) {
-            option.selected = true;
+    // Pre-select currently assigned modules
+    document.addEventListener('DOMContentLoaded', function() {
+        var select = document.querySelector('select[name="modules"]');
+        var existingModules = JSON.parse('{{ existing_modules | tojson | safe }}');
+        
+        for (var i = 0; i < select.options.length; i++) {
+            var option = select.options[i];
+            if (existingModules.includes(parseInt(option.value))) {
+                option.selected = true;
+            }
         }
-    }
+    });
 </script>
 
 <style>
-/* Buttons */
-.btn-primary-custom {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    padding: 10px 20px;
-    border-radius: 8px;
+.assign-container {
+    max-width: 700px;
+    margin: 50px auto;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.card {
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    overflow: hidden;
+}
+
+.card-header {
     background: linear-gradient(135deg, #1976d2 0%, #42a5f5 100%);
-    color: white;
-    border: none;
-    cursor: pointer;
-    font-size: 1rem;
-    transition: all 0.3s ease;
-}
-.btn-primary-custom:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 15px rgba(25, 118, 210, 0.3);
+    color: #fff;
+    padding: 25px;
+    font-size: 1.3rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
 }
 
-/* Secondary Button */
-.btn-secondary-custom {
-    display: inline-flex;
+.card-body {
+    padding: 30px;
+}
+
+.form-group {
+    margin-bottom: 25px;
+}
+
+.form-label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #2c3e50;
+    font-size: 1.1rem;
+}
+
+.form-control {
+    width: 100%;
+    padding: 12px 15px;
+    border-radius: 8px;
+    border: 2px solid #e9ecef;
+    font-size: 14px;
+    font-family: inherit;
+    transition: all 0.3s ease;
+    min-height: 200px;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: #1976d2;
+    box-shadow: 0 0 5px rgba(25,118,210,0.3);
+}
+
+.text-danger {
+    color: #dc3545;
+    font-size: 12px;
+    margin-top: 5px;
+}
+
+.form-text {
+    color: #6c757d;
+    font-size: 0.9rem;
+    margin-top: 8px;
+    display: flex;
     align-items: center;
     gap: 5px;
-    padding: 10px 20px;
+}
+
+.form-actions {
+    display: flex;
+    gap: 15px;
+    justify-content: flex-start;
+    margin-top: 30px;
+}
+
+.btn-submit, .btn-cancel {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 25px;
     border-radius: 8px;
-    background: #6c757d;
-    color: white;
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: none;
     border: none;
     cursor: pointer;
-    font-size: 1rem;
     transition: all 0.3s ease;
 }
-.btn-secondary-custom:hover {
+
+.btn-submit {
+    background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+    color: #fff;
+}
+
+.btn-submit:hover {
+    background: linear-gradient(135deg, #45a049 0%, #3d8b40 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(76, 175, 80, 0.3);
+}
+
+.btn-cancel {
+    background: #6c757d;
+    color: #fff;
+}
+
+.btn-cancel:hover {
     background: #5a6268;
+    transform: translateY(-2px);
 }
 
-/* Select field */
-.form-select {
-    border: 1px solid #ccc;
-    border-radius: 6px;
-    padding: 6px 12px;
+/* Custom scrollbar for the select */
+.form-control::-webkit-scrollbar {
+    width: 8px;
 }
 
-/* Font Awesome fallback */
-@font-face {
-    font-family: 'Font Awesome 6 Free';
-    font-style: normal;
-    font-weight: 900;
-    src: url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/webfonts/fa-solid-900.woff2') format('woff2');
+.form-control::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
 }
-.fa-solid { font-family: 'Font Awesome 6 Free'; font-weight: 900; }
+
+.form-control::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 4px;
+}
+
+.form-control::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+
+.form-control option:checked {
+    background: #3498db linear-gradient(0deg, #3498db 0%, #3498db 100%);
+    color: white;
+}
+
+.form-control option:hover {
+    background-color: #f8f9fa !important;
+    color: #2c3e50 !important;
+}
+
+.fa {
+    margin-right: 5px;
+}
 </style>
 {% endblock %}

@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, SelectField, SubmitField, DateField, TextAreaField, TimeField
+from wtforms import SelectMultipleField, StringField, PasswordField, SelectField, SubmitField, DateField, TextAreaField, TimeField
 from wtforms.validators import DataRequired, Email, Length, EqualTo, Optional, ValidationError
 from flask_wtf.file import FileField, FileAllowed
 from app.models import Role, User, Module, ClassType
@@ -49,7 +49,7 @@ class FacialDataForm(FlaskForm):
 
 class AttendanceFilterForm(FlaskForm):
     class_id = SelectField('Class Session', coerce=int, validators=[Optional()])
-    student_number = StringField('Student Number', validators=[Optional()])
+    student_number = SelectField('Student', coerce=str, validators=[Optional()], choices=[])
     date_from = DateField('From Date', validators=[Optional()])
     date_to = DateField('To Date', validators=[Optional()])
     submit = SubmitField('Filter')
@@ -108,10 +108,6 @@ class AdminResetPasswordForm(FlaskForm):
     confirm_password = PasswordField('Confirm New Password', validators=[DataRequired(), EqualTo('password')])
     submit = SubmitField('Reset Password')
 
-class BulkImportForm(FlaskForm):
-    file = FileField('Upload CSV File', validators=[DataRequired(), FileAllowed(['csv'], 'CSV files only!')])
-    submit = SubmitField('Import Users')
-
 class AddModuleForm(FlaskForm):
     module_code = StringField('Module Code', validators=[DataRequired(), Length(min=3, max=20)])
     module_name = StringField('Module Name', validators=[DataRequired(), Length(min=3, max=100)])
@@ -151,32 +147,64 @@ class EditClassForm(FlaskForm):
 
 class EnrollStudentsForm(FlaskForm):
     module_id = SelectField('Module', coerce=int, validators=[DataRequired()])
-    student_ids = SelectField('Students', coerce=int, validators=[Optional()])
+    student_ids = SelectMultipleField('Students', coerce=int, validators=[Optional()])  # Changed from SelectField
     submit = SubmitField('Enroll Students')
 
 class AdminAttendanceFilterForm(FlaskForm):
     class_id = SelectField('Class', coerce=int, validators=[Optional()])
-    student_number = StringField('Student Number', validators=[Optional()])
+    student_number = SelectField('Student', coerce=str, validators=[Optional()], choices=[])
     date_from = DateField('From Date', validators=[Optional()])
     date_to = DateField('To Date', validators=[Optional()])
     submit = SubmitField('Filter')
 
 class ReportForm(FlaskForm):
-    type = SelectField('Report Type', choices=[('class', 'By Class'), ('student', 'By Student'), ('date', 'By Date Range')], validators=[DataRequired()])
+    type = SelectField('Report Type', choices=[
+        ('class', 'By Class'), 
+        ('student', 'By Student'), 
+        ('date', 'By Date Range')
+    ], validators=[DataRequired()])
+    
     class_id = SelectField('Class', coerce=int, validators=[Optional()])
     student_id = SelectField('Student', coerce=int, validators=[Optional()])
     date_from = DateField('From Date', validators=[Optional()])
     date_to = DateField('To Date', validators=[Optional()])
     submit = SubmitField('Generate Report')
 
+    def validate(self, extra_validators=None):
+        # Initial validation
+        if not super().validate(extra_validators):
+            return False
+
+        # Custom validation based on report type
+        if self.type.data == 'class':
+            if not self.class_id.data:
+                self.class_id.errors.append('Class selection is required for class-based reports.')
+                return False
+                
+        elif self.type.data == 'student':
+            if not self.student_id.data:
+                self.student_id.errors.append('Student selection is required for student-based reports.')
+                return False
+                
+        elif self.type.data == 'date':
+            if not self.date_from.data or not self.date_to.data:
+                self.date_from.errors.append('Both start and end dates are required for date range reports.')
+                return False
+                
+            if self.date_from.data > self.date_to.data:
+                self.date_to.errors.append('End date must be after start date.')
+                return False
+
+        return True
+    
 class AssignLecturerForm(FlaskForm):
     lecturer_id = SelectField('Lecturer', coerce=int, validators=[DataRequired()])
     submit = SubmitField('Assign Lecturer')
 
 class AssignModulesForm(FlaskForm):
-    modules = SelectField('Modules', coerce=int, validators=[Optional()])
+    modules = SelectMultipleField('Modules', coerce=int, validators=[Optional()])  # Changed from SelectField
     submit = SubmitField('Assign Modules')
 
 class EnrollModulesForm(FlaskForm):
-    modules = SelectField('Modules', coerce=int, validators=[Optional()])
-    submit = SubmitField('Enroll')
+    modules = SelectMultipleField('Modules', coerce=int, validators=[DataRequired()])  # Changed from SelectField
+    submit = SubmitField('Enroll Student')
