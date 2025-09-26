@@ -95,7 +95,7 @@ def seed_database():
                 {'date': date(2025, 9, 15), 'start': time(14, 0), 'end': time(15, 0)},  # Monday
                 {'date': date(2025, 9, 20), 'start': time(11, 0), 'end': time(12, 0)},  # Saturday
                 {'date': date(2025, 9, 25), 'start': time(15, 0), 'end': time(16, 0)},   # Thursday
-                {'date': date(2025, 9, 24), 'start': time(14, 00), 'end': time(18, 00)}
+                {'date': date(2025, 9, 26), 'start': time(00, 00), 'end': time(18, 00)}
             ]
 
             class_sessions = []

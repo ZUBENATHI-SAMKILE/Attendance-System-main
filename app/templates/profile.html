@@ -38,9 +38,9 @@
             <div class="form_row">
                 <div class="form_group">
                     {{ form.password.label(class="form_label") }}
-                    <div class="input_group">
+                    <div class="password-group">
                         {{ form.password(class="form_input", placeholder="Leave blank to keep current password", id="password") }}
-                        <button type="button" class="btn_toggle" data-target="password">
+                        <button type="button" class="toggle-password" data-target="password">
                             <i class="fa fa-eye"></i>
                         </button>
                     </div>
@@ -48,9 +48,9 @@
                 </div>
                 <div class="form_group">
                     {{ form.confirm_password.label(class="form_label") }}
-                    <div class="input_group">
+                    <div class="password-group">
                         {{ form.confirm_password(class="form_input", placeholder="Confirm new password", id="confirm_password") }}
-                        <button type="button" class="btn_toggle" data-target="confirm_password">
+                        <button type="button" class="toggle-password" data-target="confirm_password">
                             <i class="fa fa-eye"></i>
                         </button>
                     </div>
@@ -72,7 +72,7 @@
                 <span>Facial data registered</span>
                 <small>Uploaded on {{ current_user.facial_data[0].uploaded_at.strftime('%Y-%m-%d at %H:%M') }}</small>
                 <div class="alert_actions">
-                    <button type="button" class="btn_info" data-bs-toggle="modal" data-bs-target="#faceModal">
+                    <button type="button" class="btn_info" onclick="viewFacialImage()">
                         <i class="fa fa-eye"></i> View
                     </button>
                     <button type="button" class="btn_warning" id="toggleUpdateBtn" onclick="toggleUpdateForm()">
@@ -131,16 +131,34 @@
     </div>
 </div>
 
+<!-- Facial Image Modal -->
+<div id="faceModal" class="modal" style="display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.8);">
+    <div class="modal_content" style="background-color: #fefefe; margin: 5% auto; padding: 20px; border-radius: 10px; width: 90%; max-width: 500px; position: relative;">
+        <span class="close_modal" style="position: absolute; top: 10px; right: 15px; font-size: 28px; font-weight: bold; cursor: pointer; color: #aaa;">&times;</span>
+        <h3 style="margin-top: 0; color: #1e88e5;">Your Facial Data</h3>
+        <div id="modalImageContainer" style="text-align: center;">
+            <img id="modalFaceImage" src="" alt="Facial Data" style="max-width: 100%; max-height: 400px; border-radius: 8px;">
+        </div>
+        <div style="text-align: center; margin-top: 15px;">
+            <button type="button" class="btn_primary" onclick="closeModal()">Close</button>
+        </div>
+    </div>
+</div>
+
 <script>
     // Password toggle
-    document.querySelectorAll('.btn_toggle').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const input = document.getElementById(this.dataset.target);
+    document.querySelectorAll('.toggle-password').forEach(button => {
+        button.addEventListener('click', function() {
+            const targetInput = document.getElementById(this.dataset.target);
             const icon = this.querySelector('i');
-            if(input.type === 'password'){
-                input.type = 'text'; icon.classList.replace('fa-eye','fa-eye-slash');
+            if(targetInput.type === 'password') {
+                targetInput.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
             } else {
-                input.type = 'password'; icon.classList.replace('fa-eye-slash','fa-eye');
+                targetInput.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
             }
         });
     });
@@ -161,6 +179,7 @@
             removeUploadImage();
         }
     }
+    
     function previewImage(input) {
         if (input.files && input.files[0]) {
             const reader = new FileReader();
@@ -179,6 +198,57 @@
         input.value='';
         document.getElementById('imagePreview').style.display='none';
     }
+
+    // View facial image functionality
+    function viewFacialImage() {
+        const modal = document.getElementById('faceModal');
+        const modalImg = document.getElementById('modalFaceImage');
+        
+        // Show loading state
+        modalImg.src = '';
+        modalImg.alt = 'Loading...';
+        document.getElementById('modalImageContainer').innerHTML = '<p>Loading image...</p>';
+        
+        // Show modal
+        modal.style.display = 'block';
+        
+        // Fetch the facial image from the server
+        fetch(`/get_face_image/{{ current_user.user_id }}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to load image');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.image) {
+                    modalImg.src = data.image;
+                    modalImg.alt = 'Your Facial Data';
+                    document.getElementById('modalImageContainer').innerHTML = '';
+                    document.getElementById('modalImageContainer').appendChild(modalImg);
+                } else {
+                    document.getElementById('modalImageContainer').innerHTML = '<p>Error loading image: ' + (data.error || 'Unknown error') + '</p>';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('modalImageContainer').innerHTML = '<p>Error loading image. Please try again.</p>';
+            });
+    }
+
+    function closeModal() {
+        document.getElementById('faceModal').style.display = 'none';
+    }
+
+    // Close modal when clicking on X or outside the modal
+    document.querySelector('.close_modal').addEventListener('click', closeModal);
+    
+    window.addEventListener('click', function(event) {
+        const modal = document.getElementById('faceModal');
+        if (event.target === modal) {
+            closeModal();
+        }
+    });
 </script>
 <style>
     .profile_container {
@@ -234,19 +304,7 @@
     outline: none;
     box-shadow: 0 0 5px rgba(66, 165, 245, 0.5);
 }
-.toggle-password {
-    cursor: pointer;
-    background-color: #e3f2fd;
-    border: 1px solid #b0bec5;
-    border-left: none;
-    border-radius: 0 8px 8px 0;
-    padding: 10px;
-    transition: background 0.3s;
-}
 
-.toggle-password:hover {
-    background-color: #bbdefb;
-}
 .profile_button {
     width: 100%;
     background-color: #1e88e5;
@@ -359,22 +417,31 @@
     box-shadow: 0 0 5px rgba(66, 165, 245, 0.5);
 }
 
-.input_group {
-    display: flex;
+/* Password group styling - consistent with login */
+.password-group {
+    position: relative;
+    width: 100%;
 }
 
-.btn_toggle {
-    background: #e3f2fd;
-    border: 1px solid #b0bec5;
-    border-left: none;
-    padding: 0 12px;
-    border-radius: 0 8px 8px 0;
+.password-group .form_input {
+    width: 100%;
+    padding-right: 40px;
+}
+
+.password-group .toggle-password {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: transparent;
+    border: none;
     cursor: pointer;
-    transition: background 0.3s ease;
+    color: #1e88e5;
+    font-size: 1.1rem;
 }
 
-.btn_toggle:hover {
-    background: #bbdefb;
+.password-group .toggle-password:hover {
+    color: #1565c0;
 }
 
 .form_help {
@@ -492,13 +559,15 @@
 }
 
 .alert_success {
-    background-color: #d4edda;
-    color: #155724;
+    background-color: #6ec571;
+    color: #1b5e20;
+    border-left: 4px solid #4caf50;
 }
 
 .alert_warning {
-    background-color: #fff3cd;
-    color: #856404;
+    background-color: #f1c542;
+    color: #e65100;
+    border-left: 4px solid #ff9800;
 }
 
 .alert_actions button {
@@ -548,14 +617,42 @@
     .profile_card { padding: 20px; }
     .facial_card { padding: 15px; }
 }
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(-20px); }
-    to { opacity: 1; transform: translateY(0); }
+
+/* Modal styles */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.8);
 }
 
-@keyframes fadeUp {
-    from { opacity: 0; transform: translateY(15px); }
-    to { opacity: 1; transform: translateY(0); }
+.modal_content {
+    background-color: #fefefe;
+    margin: 5% auto;
+    padding: 20px;
+    border-radius: 10px;
+    width: 90%;
+    max-width: 500px;
+    position: relative;
+}
+
+.close_modal {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+    color: #aaa;
+}
+
+.close_modal:hover {
+    color: #000;
 }
 </style>
 {% endblock %}
