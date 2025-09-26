@@ -145,11 +145,33 @@ body {
     position: relative;
     font-weight: 500;
     color: #fff;
+    animation: slideIn 0.5s ease-out;
 }
 
-.alert-success { background-color: #4caf50; }
-.alert-error { background-color: #f44336; }
-.alert-info { background-color: #2196f3; }
+.alert-success { 
+    background-color: #4caf50;
+    border-left: 4px solid #2e7d32;
+}
+
+.alert-danger { 
+    background-color: #f44336;
+    border-left: 4px solid #c62828;
+}
+
+.alert-error { 
+    background-color: #f44336;
+    border-left: 4px solid #c62828;
+}
+
+.alert-info { 
+    background-color: #2196f3;
+    border-left: 4px solid #1565c0;
+}
+
+.alert-warning {
+    background-color: #ff9800;
+    border-left: 4px solid #e65100;
+}
 
 .alert-close {
     position: absolute;
@@ -157,7 +179,26 @@ body {
     right: 12px;
     font-size: 20px;
     cursor: pointer;
+    color: #fff;
+    opacity: 0.8;
+    transition: opacity 0.3s ease;
 }
+
+.alert-close:hover {
+    opacity: 1;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
 .attendance-home {
     display: flex;
     justify-content: center;

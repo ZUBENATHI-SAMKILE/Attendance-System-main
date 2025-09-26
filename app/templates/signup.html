@@ -51,9 +51,11 @@
             <!-- Password -->
             <div class="register_field">
                 {{ form.password.label(class="register_label") }}
-                <div class="register_input_group">
+                <div class="password-group">
                     {{ form.password(class="register_input", id="password") }}
-                    <button type="button" class="register_toggle_password" data-target="password">👁</button>
+                    <button type="button" class="toggle-password" data-target="password">
+                        <i class="fa fa-eye"></i>
+                    </button>
                 </div>
                 <div class="register_help">Password must be at least 8 characters</div>
                 <div id="passwordValidation" class="register_error">Password must be at least 8 characters</div>
@@ -65,9 +67,11 @@
             <!-- Confirm Password -->
             <div class="register_field">
                 {{ form.confirm_password.label(class="register_label") }}
-                <div class="register_input_group">
+                <div class="password-group">
                     {{ form.confirm_password(class="register_input", id="confirm_password") }}
-                    <button type="button" class="register_toggle_password" data-target="confirm_password">👁</button>
+                    <button type="button" class="toggle-password" data-target="confirm_password">
+                        <i class="fa fa-eye"></i>
+                    </button>
                 </div>
                 <div id="passwordMatch" class="register_error">Passwords do not match</div>
                 {% for error in form.confirm_password.errors %}
@@ -107,12 +111,12 @@
                 
                 if (targetInput.type === 'password') {
                     targetInput.type = 'text';
-                    icon.classList.remove('bi-eye');
-                    icon.classList.add('bi-eye-slash');
+                    icon.classList.remove('fa-eye');
+                    icon.classList.add('fa-eye-slash');
                 } else {
                     targetInput.type = 'password';
-                    icon.classList.remove('bi-eye-slash');
-                    icon.classList.add('bi-eye');
+                    icon.classList.remove('fa-eye-slash');
+                    icon.classList.add('fa-eye');
                 }
             });
         });
@@ -283,28 +287,33 @@
     outline: none;
     box-shadow: 0 0 5px rgba(66, 165, 245, 0.5);
 }
-.register_input_group {
-    display: flex;
-    align-items: center;
+
+.password-group {
+    position: relative;
+    width: 100%;
 }
 
-.register_input_group .register_input {
-    flex: 1;
+.password-group .register_input {
+    width: 100%;
+    padding-right: 40px;
 }
 
-.register_toggle_password {
-    background: #e3f2fd;
-    border: 1px solid #b0bec5;
-    border-left: none;
-    padding: 10px 12px;
-    border-radius: 0 8px 8px 0;
+.password-group .toggle-password {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: transparent;
+    border: none;
     cursor: pointer;
-    transition: background 0.3s;
+    color: #1e88e5;
+    font-size: 1.1rem;
 }
 
-.register_toggle_password:hover {
-    background: #bbdefb;
+.password-group .toggle-password:hover {
+    color: #1565c0;
 }
+
 .register_help {
     font-size: 0.85rem;
     color: #666;
@@ -335,6 +344,12 @@
 .register_button:hover {
     background-color: #1565c0;
 }
+
+.register_button:disabled {
+    background-color: #90caf9;
+    cursor: not-allowed;
+}
+
 .register_footer {
     margin-top: 15px;
     text-align: center;

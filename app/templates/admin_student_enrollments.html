@@ -3,59 +3,6 @@
 {% block title %}Student Enrollments{% endblock %}
 
 {% block content %}
-<div class="enrollments-container">
-    <!-- Header -->
-    <div class="header-section">
-        <h1>Enrollments for {{ student.full_name }}</h1>
-        <p class="student-info">🎓 Student Number: {{ student.student_number }}</p>
-    </div>
-
-    <!-- Card -->
-    <div class="card">
-        <div class="card-header">
-            <h3>Enrolled Modules</h3>
-        </div>
-        <div class="card-body">
-            {% if module_enrollments %}
-            <div class="table-wrapper">
-                <table class="styled-table">
-                    <thead>
-                        <tr>
-                            <th>Module Code</th>
-                            <th>Module Name</th>
-                            <th>Description</th>
-                            <th>Enrollment Date</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for module, enrollment in module_enrollments %}
-                        <tr>
-                            <td>{{ module.module_code }}</td>
-                            <td>{{ module.module_name }}</td>
-                            <td>{{ module.description | default('N/A') | safe }}</td>
-                            <td>{{ enrollment.enrollment_date | default('N/A') }}</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-            {% else %}
-            <p class="empty-text">This student is not enrolled in any modules.</p>
-            {% endif %}
-
-            <!-- Back Button -->
-            <div class="button-wrapper">
-                <a href="{{ url_for('admin_list_users') }}" class="btn btn-back">
-                    <i class="fas fa-users"></i> Back to Users
-                </a>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Font Awesome -->
-<script src="https://kit.fontawesome.com/your-kit-code.js" crossorigin="anonymous"></script>
-
 <style>
 .enrollments-container {
     max-width: 1100px;
@@ -152,4 +99,54 @@
     box-shadow: 0 6px 20px rgba(25, 118, 210, 0.3);
 }
 </style>
+
+<div class="enrollments-container">
+    <!-- Header -->
+    <div class="header-section">
+        <h1>Enrollments for {{ student.full_name }}</h1>
+        <p class="student-info">🎓 Student Number: {{ student.student_number }}</p>
+    </div>
+
+    <!-- Card -->
+    <div class="card">
+        <div class="card-header">
+            <h3>Enrolled Modules</h3>
+        </div>
+        <div class="card-body">
+            {% if module_enrollments %}
+            <div class="table-wrapper">
+                <table class="styled-table">
+                    <thead>
+                        <tr>
+                            <th>Module Code</th>
+                            <th>Module Name</th>
+                            <th>Description</th>
+                            <th>Enrollment Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for module, enrollment in module_enrollments %}
+                        <tr>
+                            <td>{{ module.module_code }}</td>
+                            <td>{{ module.module_name }}</td>
+                            <td>{{ module.description | default('N/A') | safe }}</td>
+                            <td>{{ enrollment.enrollment_date | default('N/A') }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="empty-text">This student is not enrolled in any modules.</p>
+            {% endif %}
+
+            <!-- Back Button -->
+            <div class="button-wrapper">
+                <a href="{{ url_for('admin_list_users') }}" class="btn btn-back">
+                    <i class="fa fa-users"></i> Back to Users
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
