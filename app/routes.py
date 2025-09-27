@@ -401,33 +401,34 @@ def lecturer_view_attendance():
     form.class_id.choices = [(0, 'All Classes')] + [
         (c.class_id, f"{c.module.module_code} - {c.class_type.value} on {c.class_date}", {'data-module-id': str(c.module_id)})
         for c in lecturer_classes
-]
-    # Populate student choices with enrolled students for lecturer's modules
-    lecturer_module_ids = [a.module_id for a in assignments]
-    enrolled_students = db.session.query(User).join(Enrollment).filter(
-        Enrollment.module_id.in_(lecturer_module_ids),
-        User.role == Role.student
-    ).distinct().all()
+    ]
     
-    form.student_number.choices = [('', 'All Students')] + [(s.student_number, f"{s.full_name} ({s.student_number})") for s in enrolled_students]
-
-    # Base query
-    query = Attendance.query.join(ClassSession, ClassSession.class_id == Attendance.class_id).filter(ClassSession.lecturer_id == current_user.user_id)
+    # Initialize student choices - will be populated via JavaScript based on module selection
+    form.student_number.choices = [('', 'All Students')]
     
-    if form.validate_on_submit():
+    # Base query - join with ClassSession to filter by lecturer
+    query = Attendance.query.join(ClassSession).filter(ClassSession.lecturer_id == current_user.user_id)
+    
+    if request.method == 'POST':
         # Apply module filter
-        if form.module_id.data != 0:
+        if form.module_id.data and form.module_id.data != 0:
             query = query.filter(ClassSession.module_id == form.module_id.data)
         
-        # Apply other filters
-        if form.class_id.data != 0:
+        # Apply class filter
+        if form.class_id.data and form.class_id.data != 0:
             query = query.filter(Attendance.class_id == form.class_id.data)
-        if form.student_number.data:
-            student = User.query.filter_by(student_number=form.student_number.data, role=Role.student).first()
+        
+        # Apply student filter - FIXED: Properly handle student_number filtering
+        if form.student_number.data and form.student_number.data.strip():
+            # Find the student by student_number
+            student = User.query.filter_by(student_number=form.student_number.data.strip(), role=Role.student).first()
             if student:
                 query = query.filter(Attendance.student_id == student.user_id)
             else:
-                flash('Student not found.', 'warning')
+                # If student not found, return empty results
+                query = query.filter(Attendance.student_id.is_(None))
+        
+        # Apply date filters
         if form.date_from.data:
             query = query.filter(ClassSession.class_date >= form.date_from.data)
         if form.date_to.data:
@@ -435,9 +436,11 @@ def lecturer_view_attendance():
         
         attendances = query.order_by(Attendance.timestamp.desc()).all()
     else:
+        # Default: show all attendance records for lecturer's classes
         attendances = query.order_by(Attendance.timestamp.desc()).all()
     
     return render_template('view_attendance.html', form=form, attendances=attendances)
+
 
 @app.route('/lecturer/allocate_marks', methods=['GET', 'POST'])
 @login_required
@@ -1428,42 +1431,44 @@ def admin_view_attendance():
     form.class_id.choices = [(0, 'All Classes')] + [
         (c.class_id, f"{c.module.module_code} - {c.class_type.value} on {c.class_date}", {'data-module-id': str(c.module_id)})
         for c in all_classes
-]
-    # Populate student choices
-    enrolled_students = db.session.query(User).join(Enrollment).filter(
-        User.role == Role.student
-    ).distinct().all()
+    ]
     
-    form.student_number.choices = [('', 'All Students')] + [(s.student_number, f"{s.full_name} ({s.student_number})") for s in enrolled_students]
+    # Initialize student choices - will be populated via JavaScript based on module selection
+    form.student_number.choices = [('', 'All Students')]
     
     # Start with base query
-    query = db.session.query(Attendance).join(
-        User, Attendance.student_id == User.user_id
-    ).join(
-        ClassSession, Attendance.class_id == ClassSession.class_id
-    ).join(
-        Module, ClassSession.module_id == Module.module_id
-    )
+    query = Attendance.query.join(ClassSession)
     
-    if form.validate_on_submit():
+    if request.method == 'POST':
         # Apply module filter
-        if form.module_id.data != 0:
+        if form.module_id.data and form.module_id.data != 0:
             query = query.filter(ClassSession.module_id == form.module_id.data)
             
-        if form.class_id.data != 0:
+        # Apply class filter
+        if form.class_id.data and form.class_id.data != 0:
             query = query.filter(Attendance.class_id == form.class_id.data)
-        if form.student_number.data:
-            student = User.query.filter_by(student_number=form.student_number.data, role=Role.student).first()
+        
+        # Apply student filter - FIXED: Properly handle student_number filtering
+        if form.student_number.data and form.student_number.data.strip():
+            # Find the student by student_number
+            student = User.query.filter_by(student_number=form.student_number.data.strip(), role=Role.student).first()
             if student:
                 query = query.filter(Attendance.student_id == student.user_id)
             else:
-                flash('Student not found.', 'warning')
+                # If student not found, return empty results
+                query = query.filter(Attendance.student_id.is_(None))
+        
+        # Apply date filters
         if form.date_from.data:
             query = query.filter(ClassSession.class_date >= form.date_from.data)
         if form.date_to.data:
             query = query.filter(ClassSession.class_date <= form.date_to.data)
+        
+        attendances = query.order_by(Attendance.timestamp.desc()).all()
+    else:
+        # Default: show all attendance records
+        attendances = query.order_by(Attendance.timestamp.desc()).all()
     
-    attendances = query.order_by(Attendance.timestamp.desc()).all()
     return render_template('admin_view_attendance.html', form=form, attendances=attendances)
 
 
@@ -1607,6 +1612,45 @@ def admin_get_enrolled_students(module_id):
         
     except Exception as e:
         print(f"Error in admin_get_enrolled_students: {str(e)}")
+        return jsonify([])
+    
+@app.route('/get_enrolled_students/<int:module_id>')
+@login_required
+def get_enrolled_students_by_module(module_id):
+    """Get enrolled students for a specific module - for both admin and lecturer views"""
+    try:
+        if module_id == 0:
+            # If "All Modules" is selected, return appropriate students based on user role
+            if current_user.role == Role.admin:
+                students = User.query.filter_by(role=Role.student).order_by(User.full_name).all()
+            else:  # lecturer
+                # Get lecturer's assigned modules
+                assignments = Assignment.query.filter_by(lecturer_id=current_user.user_id).all()
+                lecturer_module_ids = [a.module_id for a in assignments]
+                if lecturer_module_ids:
+                    enrolled_students = db.session.query(User).join(Enrollment).filter(
+                        Enrollment.module_id.in_(lecturer_module_ids),
+                        User.role == Role.student
+                    ).distinct().order_by(User.full_name).all()
+                    students = enrolled_students
+                else:
+                    students = []
+        else:
+            # Get students enrolled in the specific module
+            enrollments = Enrollment.query.filter_by(module_id=module_id).all()
+            student_ids = [enrollment.student_id for enrollment in enrollments]
+            students = User.query.filter(User.user_id.in_(student_ids)).order_by(User.full_name).all() if student_ids else []
+        
+        # Return consistent format with student_number as value
+        student_choices = [
+            {'value': student.student_number, 'text': f"{student.full_name} ({student.student_number})"}
+            for student in students if student.student_number  # Only include students with student numbers
+        ]
+        
+        return jsonify(student_choices)
+        
+    except Exception as e:
+        print(f"Error in get_enrolled_students_by_module: {str(e)}")
         return jsonify([])
     
 @app.route('/admin/export_report_csv', methods=['POST'])

@@ -16,23 +16,29 @@
             <i class="fa-solid fa-filter"></i> Filter Records
         </div>
         <div class="card-body">
-            <form method="POST" class="filter-form">
+            <form method="POST" class="filter-form" id="filterForm">
                 {{ form.hidden_tag() }}
                 
                 <div class="filter-grid">
                     <div class="filter-group">
                         {{ form.module_id.label }}
-                        {{ form.module_id }}
+                        {{ form.module_id(id="moduleSelect") }}
                     </div>
 
                     <div class="filter-group">
                         {{ form.class_id.label }}
-                        {{ form.class_id }}
+                        {{ form.class_id(id="classSelect") }}
                     </div>
 
                     <div class="filter-group">
                         {{ form.student_number.label }}
-                        {{ form.student_number(placeholder="Enter student number") }}
+                        {{ form.student_number(id="studentSelect") }}
+                        <div id="studentLoadingMsg" style="display: none; color: #1976d2; font-size: 0.9rem; margin-top: 5px;">
+                            <i class="fa-solid fa-spinner fa-spin"></i> Loading students...
+                        </div>
+                        <div id="studentErrorMsg" style="display: none; color: #e74c3c; font-size: 0.9rem; margin-top: 5px;">
+                            <i class="fa-solid fa-exclamation-triangle"></i> Error loading students
+                        </div>
                     </div>
 
                     <div class="filter-group">
@@ -288,13 +294,18 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const moduleSelect = document.querySelector('select[name="module_id"]');
-    const classSelect = document.querySelector('select[name="class_id"]');
+    const moduleSelect = document.getElementById('moduleSelect');
+    const classSelect = document.getElementById('classSelect');
+    const studentSelect = document.getElementById('studentSelect');
+    const studentLoadingMsg = document.getElementById('studentLoadingMsg');
+    const studentErrorMsg = document.getElementById('studentErrorMsg');
+    
+    let isUpdatingStudents = false;
     
     // Store original class options with their module IDs as data attributes
     const originalClassOptions = Array.from(classSelect.options).map(option => {
         return {
-            element: option,
+            element: option.cloneNode(true),
             moduleId: option.getAttribute('data-module-id') || '0'
         };
     });
@@ -311,23 +322,120 @@ document.addEventListener('DOMContentLoaded', function() {
         if (selectedModuleId === '0') {
             originalClassOptions.forEach(item => {
                 if (item.element.value !== '0') {
-                    classSelect.add(new Option(item.element.text, item.element.value));
+                    classSelect.appendChild(item.element.cloneNode(true));
                 }
             });
         } else {
             // Filter classes by selected module using data attributes
             originalClassOptions.forEach(item => {
                 if (item.element.value !== '0' && item.moduleId === selectedModuleId) {
-                    classSelect.add(new Option(item.element.text, item.element.value));
+                    classSelect.appendChild(item.element.cloneNode(true));
                 }
             });
         }
+        
+        // Update student options when module changes
+        updateStudentOptions();
     }
     
-    moduleSelect.addEventListener('change', updateClassOptions);
+    function updateStudentOptions() {
+        const selectedModuleId = moduleSelect.value;
+        
+        if (isUpdatingStudents) {
+            return;
+        }
+        
+        isUpdatingStudents = true;
+        
+        // Hide error message and show loading state
+        studentErrorMsg.style.display = 'none';
+        studentLoadingMsg.style.display = 'block';
+        studentSelect.innerHTML = '<option value="">Loading students...</option>';
+        studentSelect.disabled = true;
+        
+        // Fetch enrolled students for the selected module
+        fetch(`/get_enrolled_students/${selectedModuleId}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(students => {
+                studentSelect.innerHTML = '';
+                studentSelect.disabled = false;
+                studentLoadingMsg.style.display = 'none';
+                
+                // Add default option
+                const defaultOption = document.createElement('option');
+                defaultOption.value = "";
+                defaultOption.textContent = "All Students";
+                studentSelect.appendChild(defaultOption);
+                
+                if (Array.isArray(students) && students.length > 0) {
+                    // Add student options
+                    students.forEach(student => {
+                        const option = document.createElement('option');
+                        option.value = student.value; // This should be the student_number
+                        option.textContent = student.text;
+                        studentSelect.appendChild(option);
+                    });
+                } else {
+                    // No students found for this module
+                    const noStudentsOption = document.createElement('option');
+                    noStudentsOption.value = "";
+                    noStudentsOption.textContent = selectedModuleId === '0' ? "No students available" : "No students enrolled in this module";
+                    noStudentsOption.disabled = true;
+                    studentSelect.appendChild(noStudentsOption);
+                }
+                
+                console.log(`Loaded ${students.length} students for module ${selectedModuleId}`);
+                isUpdatingStudents = false;
+            })
+            .catch(error => {
+                console.error('Error fetching students:', error);
+                studentSelect.innerHTML = '';
+                studentSelect.disabled = false;
+                studentLoadingMsg.style.display = 'none';
+                studentErrorMsg.style.display = 'block';
+                
+                // Add default and error options
+                const defaultOption = document.createElement('option');
+                defaultOption.value = "";
+                defaultOption.textContent = "All Students";
+                studentSelect.appendChild(defaultOption);
+                
+                const errorOption = document.createElement('option');
+                errorOption.value = "";
+                errorOption.textContent = "Error loading students";
+                errorOption.disabled = true;
+                studentSelect.appendChild(errorOption);
+                
+                isUpdatingStudents = false;
+            });
+    }
     
-    // Initial update
+    // Event listeners
+    moduleSelect.addEventListener('change', function() {
+        console.log('Module changed to:', this.value);
+        updateClassOptions();
+    });
+    
+    // Initial updates on page load
     updateClassOptions();
+    
+    // Debug form submission
+    document.getElementById('filterForm').addEventListener('submit', function(e) {
+        const moduleId = moduleSelect.value;
+        const classId = classSelect.value;
+        const studentNumber = studentSelect.value;
+        
+        console.log('Form submission:', {
+            module: moduleId,
+            class: classId,
+            student: studentNumber
+        });
+    });
 });
 </script>
 {% endblock %}
