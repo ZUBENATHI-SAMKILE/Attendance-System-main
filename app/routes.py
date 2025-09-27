@@ -390,18 +390,36 @@ def lecturer_view_attendance():
         return redirect(url_for('home'))
     
     form = AttendanceFilterForm()
-    lecturer_classes = ClassSession.query.filter_by(lecturer_id=current_user.user_id).order_by(ClassSession.class_date.desc()).all()
-    form.class_id.choices = [(0, 'All Classes')] + [(c.class_id, f"{c.module.module_code} - {c.class_type.value} on {c.class_date}") for c in lecturer_classes]
     
-    # Populate student choices with name and number
-    students = User.query.filter_by(role=Role.student).all()
-    form.student_number.choices = [('', 'All Students')] + [(s.student_number, f"{s.full_name} ({s.student_number})") for s in students]
+    # Get lecturer's assigned modules
+    assignments = Assignment.query.filter_by(lecturer_id=current_user.user_id).all()
+    lecturer_modules = [assignment.module for assignment in assignments]
+    form.module_id.choices = [(0, 'All Modules')] + [(m.module_id, f"{m.module_code} - {m.module_name}") for m in lecturer_modules]
+    
+    # Get classes based on module selection
+    lecturer_classes = ClassSession.query.filter_by(lecturer_id=current_user.user_id).order_by(ClassSession.class_date.desc()).all()
+    form.class_id.choices = [(0, 'All Classes')] + [
+        (c.class_id, f"{c.module.module_code} - {c.class_type.value} on {c.class_date}", {'data-module-id': str(c.module_id)})
+        for c in lecturer_classes
+]
+    # Populate student choices with enrolled students for lecturer's modules
+    lecturer_module_ids = [a.module_id for a in assignments]
+    enrolled_students = db.session.query(User).join(Enrollment).filter(
+        Enrollment.module_id.in_(lecturer_module_ids),
+        User.role == Role.student
+    ).distinct().all()
+    
+    form.student_number.choices = [('', 'All Students')] + [(s.student_number, f"{s.full_name} ({s.student_number})") for s in enrolled_students]
 
-    # Base query with single join to ClassSession
+    # Base query
     query = Attendance.query.join(ClassSession, ClassSession.class_id == Attendance.class_id).filter(ClassSession.lecturer_id == current_user.user_id)
     
     if form.validate_on_submit():
-        # Apply filters without redundant joins
+        # Apply module filter
+        if form.module_id.data != 0:
+            query = query.filter(ClassSession.module_id == form.module_id.data)
+        
+        # Apply other filters
         if form.class_id.data != 0:
             query = query.filter(Attendance.class_id == form.class_id.data)
         if form.student_number.data:
@@ -1401,14 +1419,24 @@ def admin_view_attendance():
         return redirect(url_for('home'))
     
     form = AdminAttendanceFilterForm()
+    
+    # Get all modules for admin
+    all_modules = Module.query.all()
+    form.module_id.choices = [(0, 'All Modules')] + [(m.module_id, f"{m.module_code} - {m.module_name}") for m in all_modules]
+    
     all_classes = ClassSession.query.order_by(ClassSession.class_date.desc()).all()
-    form.class_id.choices = [(0, 'All Classes')] + [(c.class_id, f"{c.module.module_code} - {c.class_type.value} on {c.class_date}") for c in all_classes]
+    form.class_id.choices = [(0, 'All Classes')] + [
+        (c.class_id, f"{c.module.module_code} - {c.class_type.value} on {c.class_date}", {'data-module-id': str(c.module_id)})
+        for c in all_classes
+]
+    # Populate student choices
+    enrolled_students = db.session.query(User).join(Enrollment).filter(
+        User.role == Role.student
+    ).distinct().all()
     
-    # Populate student choices with name and number
-    students = User.query.filter_by(role=Role.student).all()
-    form.student_number.choices = [('', 'All Students')] + [(s.student_number, f"{s.full_name} ({s.student_number})") for s in students]
+    form.student_number.choices = [('', 'All Students')] + [(s.student_number, f"{s.full_name} ({s.student_number})") for s in enrolled_students]
     
-    # Start with a base query that includes all necessary joins
+    # Start with base query
     query = db.session.query(Attendance).join(
         User, Attendance.student_id == User.user_id
     ).join(
@@ -1418,6 +1446,10 @@ def admin_view_attendance():
     )
     
     if form.validate_on_submit():
+        # Apply module filter
+        if form.module_id.data != 0:
+            query = query.filter(ClassSession.module_id == form.module_id.data)
+            
         if form.class_id.data != 0:
             query = query.filter(Attendance.class_id == form.class_id.data)
         if form.student_number.data:
@@ -1434,6 +1466,7 @@ def admin_view_attendance():
     attendances = query.order_by(Attendance.timestamp.desc()).all()
     return render_template('admin_view_attendance.html', form=form, attendances=attendances)
 
+
 @app.route('/admin/generate_report', methods=['GET', 'POST'])
 @login_required
 def admin_generate_report():
@@ -1442,88 +1475,156 @@ def admin_generate_report():
         return redirect(url_for('home'))
     
     form = ReportForm()
-    form.class_id.choices = [(c.class_id, f"{c.module.module_code} - {c.class_type.value} on {c.class_date}") for c in ClassSession.query.all()]
-    form.student_id.choices = [(s.user_id, f"{s.student_number} - {s.full_name}") for s in User.query.filter_by(role=Role.student).all()]
+    
+    # Populate form choices
+    all_modules = Module.query.all()
+    form.module_id.choices = [(0, 'All Modules')] + [(m.module_id, f"{m.module_code} - {m.module_name}") for m in all_modules]
+    
+    # Only show classes (no "All Classes" option)
+    all_classes = ClassSession.query.order_by(ClassSession.class_date.desc()).all()
+    form.class_id.choices = [(c.class_id, f"{c.module.module_code} - {c.class_type.value} on {c.class_date}") for c in all_classes]
+    
+    # Initialize student choices as empty - will be populated via JavaScript based on module selection
+    form.student_id.choices = []
     
     report_data = []
-    report_type = None
+    report_scope = None
     filters = {}
     
-    if form.validate_on_submit():
-        # Start with proper joins to ensure all relationships are available
-        query = db.session.query(Attendance).join(
-            User, Attendance.student_id == User.user_id
-        ).join(
-            ClassSession, Attendance.class_id == ClassSession.class_id
-        ).join(
-            Module, ClassSession.module_id == Module.module_id
-        )
-        
-        report_type = form.type.data
-        
-        if report_type == 'class':
-            if form.class_id.data:
-                query = query.filter(Attendance.class_id == form.class_id.data)
-                filters['class'] = ClassSession.query.get(form.class_id.data)
+    if request.method == 'POST':
+        # For student reports, we need to dynamically populate student choices based on selected module
+        if form.report_scope.data == 'student':
+            module_id = form.module_id.data if form.module_id.data else 0
+            
+            if module_id == 0:
+                # All modules - get all students
+                students = User.query.filter_by(role=Role.student).order_by(User.full_name).all()
             else:
-                flash('Please select a class for class-based report.', 'warning')
-                return render_template('admin_report.html', form=form, report_data=None)
-                
-        elif report_type == 'student':
-            if form.student_id.data:
-                query = query.filter(Attendance.student_id == form.student_id.data)
-                filters['student'] = User.query.get(form.student_id.data)
-                
+                # Specific module - get enrolled students
+                enrollments = Enrollment.query.filter_by(module_id=module_id).all()
+                student_ids = [enrollment.student_id for enrollment in enrollments]
+                students = User.query.filter(User.user_id.in_(student_ids)).order_by(User.full_name).all() if student_ids else []
+            
+            form.student_id.choices = [(s.user_id, f"{s.student_number} - {s.full_name}") for s in students]
+        
+        if form.validate_on_submit():
+            # Base query with proper joins
+            query = db.session.query(Attendance).join(
+                User, Attendance.student_id == User.user_id
+            ).join(
+                ClassSession, Attendance.class_id == ClassSession.class_id
+            ).join(
+                Module, ClassSession.module_id == Module.module_id
+            )
+            
+            report_scope = form.report_scope.data
+            
+            if report_scope == 'class':
+                # Class-based report: Show attendance for a specific class
                 if form.class_id.data:
                     query = query.filter(Attendance.class_id == form.class_id.data)
                     filters['class'] = ClassSession.query.get(form.class_id.data)
-            else:
-                flash('Please select a student for student-based report.', 'warning')
-                return render_template('admin_report.html', form=form, report_data=None)
-                
-        elif report_type == 'date':
-            if form.date_from.data and form.date_to.data:
-                if form.date_from.data > form.date_to.data:
-                    flash('End date must be after start date.', 'warning')
-                    return render_template('admin_report.html', form=form, report_data=None)
                     
-                # Filter by class date range (not attendance timestamp)
-                query = query.filter(ClassSession.class_date >= form.date_from.data, 
-                                   ClassSession.class_date <= form.date_to.data)
-                filters['date_from'] = form.date_from.data
-                filters['date_to'] = form.date_to.data
-                
-                # Optional student filter for date range
+            elif report_scope == 'student':
+                # Student-based report: Show all attendance for a specific student
                 if form.student_id.data:
                     query = query.filter(Attendance.student_id == form.student_id.data)
                     filters['student'] = User.query.get(form.student_id.data)
-                # Note: Class filter is intentionally removed for date range reports
-                # to allow viewing all classes within the date range
-            else:
-                flash('Please select both start and end dates for date range report.', 'warning')
-                return render_template('admin_report.html', form=form, report_data=None)
-        
-        report_data = query.order_by(ClassSession.class_date.desc(), Attendance.timestamp.desc()).all()
+                
+                # Module filter for student report - only show enrolled modules
+                if form.module_id.data and form.module_id.data != 0:
+                    # Verify the student is enrolled in this module
+                    enrollment = Enrollment.query.filter_by(
+                        student_id=form.student_id.data, 
+                        module_id=form.module_id.data
+                    ).first()
+                    
+                    if enrollment:
+                        query = query.filter(ClassSession.module_id == form.module_id.data)
+                        filters['module'] = Module.query.get(form.module_id.data)
+                    else:
+                        # Student not enrolled in selected module, return empty results
+                        query = query.filter(Attendance.attendance_id.is_(None))
+                        flash(f'Student is not enrolled in the selected module.', 'warning')
+                        
+            elif report_scope == 'date':
+                # Date range report: Show attendance within a date range
+                if form.date_from.data and form.date_to.data:
+                    query = query.filter(
+                        ClassSession.class_date >= form.date_from.data, 
+                        ClassSession.class_date <= form.date_to.data
+                    )
+                    filters['date_from'] = form.date_from.data
+                    filters['date_to'] = form.date_to.data
+                
+                # Module filter for date range
+                if form.module_id.data and form.module_id.data != 0:
+                    query = query.filter(ClassSession.module_id == form.module_id.data)
+                    filters['module'] = Module.query.get(form.module_id.data)
+                    
+                    # Include all enrolled students option
+                    if form.include_all_students.data:
+                        enrolled_student_ids = [e.student_id for e in Enrollment.query.filter_by(module_id=form.module_id.data).all()]
+                        if enrolled_student_ids:
+                            query = query.filter(Attendance.student_id.in_(enrolled_student_ids))
+                        else:
+                            # No enrolled students, return empty results
+                            query = query.filter(Attendance.student_id.is_(None))
+                        filters['include_all_students'] = True
+            
+            report_data = query.order_by(ClassSession.class_date.desc(), Attendance.timestamp.desc()).all()
+        else:
+            # Form validation failed - show errors
+            for field, errors in form.errors.items():
+                for error in errors:
+                    flash(f'{field}: {error}', 'danger')
     
-    return render_template('admin_report.html', form=form, report_data=report_data, report_type=report_type, filters=filters)
+    return render_template('admin_report.html', form=form, report_data=report_data, report_scope=report_scope, filters=filters)
 
+# Updated route to handle both "All Modules" and specific module - FIXED
+@app.route('/admin/get_enrolled_students/<int:module_id>')
+@login_required
+def admin_get_enrolled_students(module_id):
+    if current_user.role != Role.admin:
+        return jsonify([])
+    
+    try:
+        if module_id == 0:
+            # If "All Modules" is selected, return all students
+            students = User.query.filter_by(role=Role.student).order_by(User.full_name).all()
+        else:
+            # Get students enrolled in the specific module
+            enrollments = Enrollment.query.filter_by(module_id=module_id).all()
+            student_ids = [enrollment.student_id for enrollment in enrollments]
+            students = User.query.filter(User.user_id.in_(student_ids)).order_by(User.full_name).all() if student_ids else []
+        
+        student_choices = [
+            {'value': student.user_id, 'text': f"{student.student_number} - {student.full_name}"}
+            for student in students
+        ]
+        
+        return jsonify(student_choices)
+        
+    except Exception as e:
+        print(f"Error in admin_get_enrolled_students: {str(e)}")
+        return jsonify([])
+    
 @app.route('/admin/export_report_csv', methods=['POST'])
 @login_required
 def admin_export_report_csv():
-    """Export report data to CSV"""
     if current_user.role != Role.admin:
         flash('Access denied. Admin privileges required.', 'danger')
         return redirect(url_for('home'))
     
     try:
-        # Get the filter parameters from the form data
-        report_type = request.form.get('report_type')
+        report_scope = request.form.get('report_scope')
         class_id = request.form.get('class_id', type=int)
         student_id = request.form.get('student_id', type=int)
+        module_id = request.form.get('module_id', type=int)
         date_from_str = request.form.get('date_from')
         date_to_str = request.form.get('date_to')
+        include_all_students = request.form.get('include_all_students') == 'true'
         
-        # Reconstruct the query based on the parameters
         query = db.session.query(Attendance).join(
             User, Attendance.student_id == User.user_id
         ).join(
@@ -1534,28 +1635,40 @@ def admin_export_report_csv():
         
         filters = {}
         
-        if report_type == 'class' and class_id:
-            query = query.filter(Attendance.class_id == class_id)
-            filters['class'] = ClassSession.query.get(class_id)
-        elif report_type == 'student' and student_id:
-            query = query.filter(Attendance.student_id == student_id)
-            filters['student'] = User.query.get(student_id)
+        if report_scope == 'class':
             if class_id:
                 query = query.filter(Attendance.class_id == class_id)
                 filters['class'] = ClassSession.query.get(class_id)
-        elif report_type == 'date':
+                    
+        elif report_scope == 'student':
+            if student_id:
+                query = query.filter(Attendance.student_id == student_id)
+                filters['student'] = User.query.get(student_id)
+            
+            if module_id and module_id != 0:
+                query = query.filter(ClassSession.module_id == module_id)
+                filters['module'] = Module.query.get(module_id)
+                
+        elif report_scope == 'date':
             if date_from_str and date_to_str:
                 date_from = datetime.strptime(date_from_str, '%Y-%m-%d').date()
                 date_to = datetime.strptime(date_to_str, '%Y-%m-%d').date()
-                query = query.filter(ClassSession.class_date >= date_from, 
-                                   ClassSession.class_date <= date_to)
+                query = query.filter(
+                    ClassSession.class_date >= date_from, 
+                    ClassSession.class_date <= date_to
+                )
                 filters['date_from'] = date_from
                 filters['date_to'] = date_to
+            
+            if module_id and module_id != 0:
+                query = query.filter(ClassSession.module_id == module_id)
+                filters['module'] = Module.query.get(module_id)
                 
-                # Only apply student filter if provided (class filter is ignored for date range)
-                if student_id:
-                    query = query.filter(Attendance.student_id == student_id)
-                    filters['student'] = User.query.get(student_id)
+                if include_all_students:
+                    enrolled_student_ids = [e.student_id for e in Enrollment.query.filter_by(module_id=module_id).all()]
+                    if enrolled_student_ids:
+                        query = query.filter(Attendance.student_id.in_(enrolled_student_ids))
+                    filters['include_all_students'] = True
         
         report_data = query.order_by(ClassSession.class_date.desc(), Attendance.timestamp.desc()).all()
         
@@ -1563,28 +1676,32 @@ def admin_export_report_csv():
         output = io.StringIO()
         writer = csv.writer(output)
         
-        # Write header based on report type
+        # Write header based on report scope
         header = []
-        if report_type == 'class' and 'class' in filters:
-            class_session = filters['class']
-            header = [f'Attendance Report for {class_session.module.module_code} - {class_session.class_type.value} on {class_session.class_date}']
-        elif report_type == 'student' and 'student' in filters:
-            student = filters['student']
-            header = [f'Attendance Report for {student.full_name} ({student.student_number})']
+        if report_scope == 'class':
             if 'class' in filters:
-                header.append(f'Filtered by Class: {filters["class"].module.module_code}')
-        elif report_type == 'date':
+                class_session = filters['class']
+                header = [f'Attendance Report for Class: {class_session.module.module_code} - {class_session.class_type.value} on {class_session.class_date}']
+                
+        elif report_scope == 'student':
+            if 'student' in filters:
+                student = filters['student']
+                header = [f'Attendance Report for Student: {student.full_name} ({student.student_number})']
+                if 'module' in filters:
+                    header.append(f'Module: {filters["module"].module_code} - {filters["module"].module_name}')
+                    
+        elif report_scope == 'date':
             date_range = f"From {filters.get('date_from', 'N/A')} to {filters.get('date_to', 'N/A')}"
             header = [f'Attendance Report for Date Range: {date_range}']
-            if filters.get('student'):
-                header.append(f'Filtered by Student: {filters["student"].full_name}')
-            if not filters.get('student'):
-                header.append(f'Filter: All students within date range')
-        
+            if 'module' in filters:
+                header.append(f'Module: {filters["module"].module_code} - {filters["module"].module_name}')
+                if filters.get('include_all_students'):
+                    header.append('Scope: All enrolled students in module')
+                    
         for line in header:
             writer.writerow([line])
         
-        writer.writerow([])  # Empty row
+        writer.writerow([])
         writer.writerow(['Student Name', 'Student Number', 'Module', 'Class Type', 'Class Date', 'Start Time', 'End Time', 'Status', 'Timestamp'])
         
         for att in report_data:
@@ -1608,7 +1725,8 @@ def admin_export_report_csv():
     except Exception as e:
         flash(f'Error generating CSV export: {str(e)}', 'danger')
         return redirect(url_for('admin_generate_report'))
-
+    
+    
 @app.route('/admin/analytics')
 @login_required
 def admin_analytics():

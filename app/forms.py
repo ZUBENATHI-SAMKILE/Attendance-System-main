@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm
-from wtforms import SelectMultipleField, StringField, PasswordField, SelectField, SubmitField, DateField, TextAreaField, TimeField
+from wtforms import BooleanField, SelectMultipleField, StringField, PasswordField, SelectField, SubmitField, DateField, TextAreaField, TimeField
 from wtforms.validators import DataRequired, Email, Length, EqualTo, Optional, ValidationError
 from flask_wtf.file import FileField, FileAllowed
 from app.models import Role, User, Module, ClassType
@@ -48,6 +48,7 @@ class FacialDataForm(FlaskForm):
     submit = SubmitField('Upload Image')
 
 class AttendanceFilterForm(FlaskForm):
+    module_id = SelectField('Module', coerce=int, validators=[Optional()])
     class_id = SelectField('Class Session', coerce=int, validators=[Optional()])
     student_number = SelectField('Student', coerce=str, validators=[Optional()], choices=[])
     date_from = DateField('From Date', validators=[Optional()])
@@ -151,6 +152,7 @@ class EnrollStudentsForm(FlaskForm):
     submit = SubmitField('Enroll Students')
 
 class AdminAttendanceFilterForm(FlaskForm):
+    module_id = SelectField('Module', coerce=int, validators=[Optional()])
     class_id = SelectField('Class', coerce=int, validators=[Optional()])
     student_number = SelectField('Student', coerce=str, validators=[Optional()], choices=[])
     date_from = DateField('From Date', validators=[Optional()])
@@ -158,16 +160,18 @@ class AdminAttendanceFilterForm(FlaskForm):
     submit = SubmitField('Filter')
 
 class ReportForm(FlaskForm):
-    type = SelectField('Report Type', choices=[
-        ('class', 'By Class'), 
-        ('student', 'By Student'), 
-        ('date', 'By Date Range')
+    report_scope = SelectField('Report Scope', choices=[
+        ('class', 'Attendance by Class'), 
+        ('student', 'Attendance by Student'), 
+        ('date', 'Attendance by Date Range')
     ], validators=[DataRequired()])
     
+    module_id = SelectField('Module', coerce=int, validators=[Optional()])
     class_id = SelectField('Class', coerce=int, validators=[Optional()])
     student_id = SelectField('Student', coerce=int, validators=[Optional()])
     date_from = DateField('From Date', validators=[Optional()])
     date_to = DateField('To Date', validators=[Optional()])
+    include_all_students = BooleanField('Include all enrolled students for module', default=False)
     submit = SubmitField('Generate Report')
 
     def validate(self, extra_validators=None):
@@ -175,20 +179,23 @@ class ReportForm(FlaskForm):
         if not super().validate(extra_validators):
             return False
 
-        # Custom validation based on report type
-        if self.type.data == 'class':
+        # Custom validation based on report scope
+        if self.report_scope.data == 'class':
             if not self.class_id.data:
                 self.class_id.errors.append('Class selection is required for class-based reports.')
                 return False
                 
-        elif self.type.data == 'student':
+        elif self.report_scope.data == 'student':
             if not self.student_id.data:
                 self.student_id.errors.append('Student selection is required for student-based reports.')
                 return False
                 
-        elif self.type.data == 'date':
+        elif self.report_scope.data == 'date':
             if not self.date_from.data or not self.date_to.data:
-                self.date_from.errors.append('Both start and end dates are required for date range reports.')
+                if not self.date_from.data:
+                    self.date_from.errors.append('Start date is required for date range reports.')
+                if not self.date_to.data:
+                    self.date_to.errors.append('End date is required for date range reports.')
                 return False
                 
             if self.date_from.data > self.date_to.data:

@@ -1,169 +1,412 @@
 {% extends "base.html" %}
-{% block title %}Generate Report{% endblock %}
+{% block title %}Generate Reports{% endblock %}
 
 {% block content %}
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css" rel="stylesheet">
+<div class="report-container">
+
+    <!-- Page Title -->
+    <div class="header-section">
+        <h1><i class="fa-solid fa-chart-bar"></i> Generate Reports</h1>
+        <p class="subtitle">Generate detailed attendance reports</p>
+    </div>
+
+    <!-- Report Form -->
+    <div class="card">
+        <div class="card-header">
+            <i class="fa-solid fa-cog"></i> Report Configuration
+        </div>
+        <div class="card-body">
+            <form method="POST" class="report-form" id="reportForm">
+                {{ form.hidden_tag() }}
+                
+                <!-- Primary Report Type -->
+                <div class="form-group">
+                    {{ form.report_scope.label }}
+                    {{ form.report_scope(class="form-control") }}
+                    {% for error in form.report_scope.errors %}
+                        <span class="error-message">{{ error }}</span>
+                    {% endfor %}
+                </div>
+
+                <!-- Dynamic fields based on report scope -->
+                <div id="dynamicFields">
+                    <!-- Module selection (shown for student and date reports) -->
+                    <div class="form-group module-field">
+                        {{ form.module_id.label }}
+                        {{ form.module_id(class="form-control") }}
+                        {% for error in form.module_id.errors %}
+                            <span class="error-message">{{ error }}</span>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Class selection (shown for class reports) -->
+                    <div class="form-group class-field">
+                        {{ form.class_id.label }}
+                        {{ form.class_id(class="form-control") }}
+                        {% for error in form.class_id.errors %}
+                            <span class="error-message">{{ error }}</span>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Student selection (shown for student reports) -->
+                    <div class="form-group student-field">
+                        {{ form.student_id.label }}
+                        {{ form.student_id(class="form-control") }}
+                        <div id="studentLoadingMsg" style="display: none; color: #1976d2; font-size: 0.9rem; margin-top: 5px;">
+                            <i class="fa-solid fa-spinner fa-spin"></i> Loading students...
+                        </div>
+                        {% for error in form.student_id.errors %}
+                            <span class="error-message">{{ error }}</span>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Date range fields (shown for date range reports) -->
+                    <div class="date-range-fields">
+                        <div class="form-group">
+                            {{ form.date_from.label }}
+                            {{ form.date_from(class="form-control") }}
+                            {% for error in form.date_from.errors %}
+                                <span class="error-message">{{ error }}</span>
+                            {% endfor %}
+                        </div>
+                        <div class="form-group">
+                            {{ form.date_to.label }}
+                            {{ form.date_to(class="form-control") }}
+                            {% for error in form.date_to.errors %}
+                                <span class="error-message">{{ error }}</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <!-- Include all students checkbox (shown for date range reports) -->
+                    <div class="form-group include-all-field">
+                        <label>
+                            {{ form.include_all_students() }}
+                            {{ form.include_all_students.label.text }}
+                        </label>
+                        <small class="form-text">Include all students enrolled in the selected module</small>
+                        {% for error in form.include_all_students.errors %}
+                            <span class="error-message">{{ error }}</span>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    {{ form.submit(class="btn btn-primary") }}
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Report Results -->
+    {% if report_data is not none %}
+    <div class="card">
+        <div class="card-header">
+            <i class="fa-solid fa-chart-pie"></i> Report Results ({{ report_data|length }} records)
+            {% if report_data %}
+            <form method="POST" action="{{ url_for('admin_export_report_csv') }}" style="display: inline; margin-left: 20px;">
+                <input type="hidden" name="report_scope" value="{{ report_scope }}">
+                <input type="hidden" name="class_id" value="{{ form.class_id.data or '' }}">
+                <input type="hidden" name="student_id" value="{{ form.student_id.data or '' }}">
+                <input type="hidden" name="module_id" value="{{ form.module_id.data or '' }}">
+                <input type="hidden" name="date_from" value="{{ form.date_from.data or '' }}">
+                <input type="hidden" name="date_to" value="{{ form.date_to.data or '' }}">
+                <input type="hidden" name="include_all_students" value="{{ form.include_all_students.data or 'false' }}">
+                <button type="submit" class="export-btn">
+                    <i class="fa-solid fa-download"></i> Export CSV
+                </button>
+            </form>
+            {% endif %}
+        </div>
+        <div class="card-body">
+            {% if report_data %}
+                <!-- Report Summary -->
+                <div class="report-summary">
+                    <h4>Report Summary</h4>
+                    {% if report_scope == 'class' %}
+                        {% if filters.class %}
+                            <p><strong>Class:</strong> {{ filters.class.module.module_code }} - {{ filters.class.class_type.value }} on {{ filters.class.class_date }}</p>
+                        {% endif %}
+                    {% elif report_scope == 'student' %}
+                        {% if filters.student %}
+                            <p><strong>Student:</strong> {{ filters.student.full_name }} ({{ filters.student.student_number }})</p>
+                        {% endif %}
+                        {% if filters.module %}
+                        <p><strong>Module Filter:</strong> {{ filters.module.module_code }} - {{ filters.module.module_name }}</p>
+                        {% else %}
+                        <p><strong>Module Filter:</strong> All Modules</p>
+                        {% endif %}
+                    {% elif report_scope == 'date' %}
+                        <p><strong>Date Range:</strong> {{ filters.date_from }} to {{ filters.date_to }}</p>
+                        {% if filters.module %}
+                        <p><strong>Module Filter:</strong> {{ filters.module.module_code }} - {{ filters.module.module_name }}</p>
+                            {% if filters.include_all_students %}
+                            <p><strong>Scope:</strong> All students enrolled in module</p>
+                            {% endif %}
+                        {% else %}
+                        <p><strong>Scope:</strong> All students within date range</p>
+                        {% endif %}
+                    {% endif %}
+                    <p><strong>Total Records:</strong> {{ report_data|length }}</p>
+                </div>
+
+                <!-- Attendance Table -->
+                <table class="report-table">
+                    <thead>
+                        <tr>
+                            <th><i class="fa-solid fa-user"></i> Student</th>
+                            <th><i class="fa-solid fa-id-card"></i> Student Number</th>
+                            <th><i class="fa-solid fa-book"></i> Module</th>
+                            <th><i class="fa-solid fa-calendar"></i> Class Date</th>
+                            <th><i class="fa-solid fa-clock"></i> Time</th>
+                            <th><i class="fa-solid fa-check"></i> Status</th>
+                            <th><i class="fa-solid fa-calendar-check"></i> Recorded</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for att in report_data %}
+                        <tr>
+                            <td>{{ att.student.full_name if att.student else 'N/A' }}</td>
+                            <td>{{ att.student.student_number if att.student else 'N/A' }}</td>
+                            <td>
+                                {% if att.class_session and att.class_session.module %}
+                                    {{ att.class_session.module.module_code }}
+                                {% else %}
+                                    N/A
+                                {% endif %}
+                            </td>
+                            <td>{{ att.class_session.class_date if att.class_session else 'N/A' }}</td>
+                            <td>
+                                {% if att.class_session %}
+                                    {{ att.class_session.start_time.strftime('%H:%M') if att.class_session.start_time else 'N/A' }} - 
+                                    {{ att.class_session.end_time.strftime('%H:%M') if att.class_session.end_time else 'N/A' }}
+                                {% else %}
+                                    N/A
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if att.attendance_status.value == "present" %}
+                                    <span class="badge success"><i class="fa-solid fa-check"></i> Present</span>
+                                {% else %}
+                                    <span class="badge danger"><i class="fa-solid fa-xmark"></i> Absent</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ att.timestamp.strftime('%Y-%m-%d %H:%M') if att.timestamp else 'N/A' }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+            <div class="empty-state">
+                <i class="fa-solid fa-chart-bar fa-3x"></i>
+                <h3>No Data Found</h3>
+                <p>No attendance records match your current report criteria.</p>
+                <p>Try adjusting your filters or check if there are any records available.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+
 <style>
 .report-container {
-    max-width: 1200px;
-    margin: 40px auto;
-    padding: 20px;
-    background: #fff;
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 25px;
+    box-sizing: border-box;
 }
 
-.page-title {
+.header-section {
     text-align: center;
-    margin-bottom: 20px;
-    color: #333;
+    margin-bottom: 30px;
 }
 
-.report-form .form-group {
-    margin-bottom: 15px;
+.header-section h1 {
+    font-size: 2rem;
+    color: #2c3e50;
 }
 
-.form-row {
+.subtitle {
+    color: #7f8c8d;
+}
+
+.card {
+    background: #fff;
+    border-radius: 12px;
+    margin-bottom: 25px;
+    box-sizing: border-box;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    overflow: hidden;
+}
+
+.card-header {
+    background: #1976d2;
+    color: #fff;
+    padding: 12px 18px;
+    font-weight: bold;
     display: flex;
-    gap: 15px;
+    align-items: center;
+    justify-content: space-between;
 }
 
-.form-row .form-group {
-    flex: 1;
+.card-body {
+    padding: 25px;
 }
 
-.form-label {
-    display: block;
-    margin-bottom: 6px;
+.report-form {
+    width: 100%;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
     font-weight: 600;
-    color: #444;
+    margin-bottom: 8px;
+    color: #333;
+    font-size: 0.9rem;
+    display: block;
 }
 
-.form-input {
+.form-control {
     width: 100%;
     padding: 10px;
     border: 1px solid #ddd;
     border-radius: 6px;
-    font-size: 14px;
+    font-size: 0.9rem;
+    box-sizing: border-box;
 }
 
-.form-buttons {
-    display: flex;
-    gap: 15px;
-    margin-top: 20px;
-    align-items: center;
+.form-group input[type="checkbox"] {
+    width: auto;
+    margin-right: 10px;
 }
 
-.btn-submit, .btn-export {
-    display: inline-flex;
-    align-items: center;
-    padding: 12px 24px;
+.form-text {
+    display: block;
+    margin-top: 5px;
+    color: #6c757d;
+    font-size: 0.8rem;
+}
+
+.error-message {
+    color: #e74c3c;
+    font-size: 0.8rem;
+    display: block;
+    margin-top: 5px;
+}
+
+.date-range-fields {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+.form-actions {
+    margin-top: 25px;
+    text-align: right;
+}
+
+.btn {
+    background: #1976d2;
+    color: #fff;
     border: none;
+    padding: 12px 24px;
     border-radius: 6px;
     cursor: pointer;
-    font-size: 14px;
-    font-weight: 600;
+    font-size: 1rem;
+    transition: background 0.3s;
     text-decoration: none;
+    display: inline-block;
+}
+
+.btn:hover {
+    background: #1565c0;
+    color: #fff;
+}
+
+.btn-primary {
+    background: #1976d2;
+}
+
+.export-btn {
+    background: #28a745;
+    color: #fff;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
     transition: background 0.3s;
 }
 
-.btn-submit {
-    background: #4CAF50;
-    color: #fff;
-}
-
-.btn-submit:hover {
-    background: #45a049;
-}
-
-.btn-export {
-    background: #2196F3;
-    color: #fff;
-}
-
-.btn-export:hover {
-    background: #1976D2;
-}
-
-.btn-submit i, .btn-export i {
-    margin-right: 8px;
-}
-
-.report-results {
-    margin-top: 30px;
-    border-top: 2px solid #eee;
-    padding-top: 20px;
+.export-btn:hover {
+    background: #218838;
 }
 
 .report-summary {
-    background: #f9f9f9;
-    padding: 15px;
-    border-radius: 6px;
-    margin-bottom: 20px;
-    border-left: 4px solid #2196F3;
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 25px;
+    border-left: 4px solid #1976d2;
 }
 
-.report-summary h3 {
+.report-summary h4 {
     margin-top: 0;
-    color: #333;
-    border-bottom: 1px solid #ddd;
-    padding-bottom: 8px;
+    color: #1976d2;
 }
 
 .report-summary p {
     margin: 5px 0;
 }
 
-.table-container {
-    overflow-x: auto;
-    margin-top: 20px;
-}
-
 .report-table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 14px;
-    min-width: 800px;
+    font-size: 0.9rem;
 }
 
-.report-table th, .report-table td {
-    padding: 10px;
-    border: 1px solid #ddd;
+.report-table th,
+.report-table td {
+    padding: 12px;
+    border-bottom: 1px solid #eee;
     text-align: left;
 }
 
+.report-table thead {
+    background: #f5f5f5;
+}
+
 .report-table th {
-    background: #f4f4f4;
-    font-weight: 600;
-    position: sticky;
-    top: 0;
-}
-
-.report-table tr:nth-child(even) {
-    background-color: #f9f9f9;
-}
-
-.report-table tr:hover {
-    background-color: #f0f0f0;
-}
-
-.status-present {
-    color: #4CAF50;
+    color: #1976d2;
     font-weight: 600;
 }
 
-.status-absent {
-    color: #f44336;
-    font-weight: 600;
+.badge {
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    font-weight: bold;
+    color: #fff;
+}
+
+.badge.success {
+    background: #27ae60;
+}
+
+.badge.danger {
+    background: #e74c3c;
 }
 
 .empty-state {
     text-align: center;
     padding: 40px 20px;
     color: #7f8c8d;
-    background: #f9f9f9;
-    border-radius: 6px;
-    margin-top: 20px;
 }
 
 .empty-state i {
@@ -181,295 +424,205 @@
     line-height: 1.5;
 }
 
-.section-title {
-    border-bottom: 2px solid #333;
-    padding-bottom: 10px;
-    margin-bottom: 20px;
-    color: #333;
+/* Initially hide all dynamic fields */
+.module-field,
+.class-field,
+.student-field,
+.date-range-fields,
+.include-all-field {
+    display: none;
 }
 
-/* Responsive design */
 @media (max-width: 768px) {
     .report-container {
-        margin: 20px;
         padding: 15px;
     }
     
-    .form-row {
-        flex-direction: column;
-        gap: 10px;
+    .card-body {
+        padding: 15px;
     }
     
-    .form-buttons {
-        flex-direction: column;
-        gap: 10px;
-    }
-    
-    .btn-submit, .btn-export {
-        width: 100%;
-        text-align: center;
+    .date-range-fields {
+        grid-template-columns: 1fr;
+        gap: 15px;
     }
     
     .report-table {
-        font-size: 12px;
+        font-size: 0.8rem;
     }
     
-    .report-table th, .report-table td {
-        padding: 6px;
+    .report-table th,
+    .report-table td {
+        padding: 8px;
     }
 }
 </style>
 
-<div class="report-container">
-    <h1 class="page-title">Generate Attendance Report</h1>
-
-    <form method="POST" class="report-form" id="report-form">
-        {{ form.hidden_tag() }}
-
-        <div class="form-group">
-            {{ form.type.label(class="form-label") }}
-            {{ form.type(class="form-input", id="report-type") }}
-        </div>
-
-        <div class="form-group" id="class-group">
-            {{ form.class_id.label(class="form-label") }}
-            {{ form.class_id(class="form-input") }}
-        </div>
-
-        <div class="form-group" id="student-group">
-            {{ form.student_id.label(class="form-label") }}
-            {{ form.student_id(class="form-input") }}
-        </div>
-
-        <div class="form-row">
-            <div class="form-group" id="date-from-group">
-                {{ form.date_from.label(class="form-label") }}
-                {{ form.date_from(class="form-input") }}
-            </div>
-
-            <div class="form-group" id="date-to-group">
-                {{ form.date_to.label(class="form-label") }}
-                {{ form.date_to(class="form-input") }}
-            </div>
-        </div>
-
-        <div class="form-buttons">
-            <button type="submit" class="btn-submit" id="generate-btn">
-                <i class="fa fa-refresh"></i> Generate Report
-            </button>
-            
-            {% if report_data is not none and report_type %}
-            <button type="button" class="btn-export" id="export-csv-btn">
-                <i class="fa fa-download"></i> Export to CSV
-            </button>
-            {% endif %}
-        </div>
-    </form>
-
-    {% if report_data is not none and report_type %}
-    <div class="report-results">
-        <h2 class="section-title">Report Results</h2>
-
-        <div class="report-summary">
-            <h3>Report Summary</h3>
-            {% if report_type == 'class' and filters.class %}
-                <p><strong>Report Type:</strong> Class-based Report</p>
-                <p><strong>Class:</strong> {{ filters.class.module.module_code }} - {{ filters.class.class_type.value }}</p>
-                <p><strong>Date:</strong> {{ filters.class.class_date }} | <strong>Time:</strong> {{ filters.class.start_time }} - {{ filters.class.end_time }}</p>
-                <p><strong>Lecturer:</strong> {{ filters.class.lecturer.full_name }}</p>
-            {% elif report_type == 'student' and filters.student %}
-                <p><strong>Report Type:</strong> Student-based Report</p>
-                <p><strong>Student:</strong> {{ filters.student.full_name }}</p>
-                <p><strong>Student Number:</strong> {{ filters.student.student_number }}</p>
-                {% if filters.class %}
-                <p><strong>Filtered by Class:</strong> {{ filters.class.module.module_code }} - {{ filters.class.class_date }}</p>
-                {% else %}
-                <p><strong>Filter:</strong> All classes for this student</p>
-                {% endif %}
-            {% elif report_type == 'date' %}
-                <p><strong>Report Type:</strong> Date Range Report</p>
-                <p><strong>Date Range:</strong> {{ filters.date_from }} to {{ filters.date_to }}</p>
-                {% if filters.class %}
-                <p><strong>Filtered by Class:</strong> {{ filters.class.module.module_code }}</p>
-                {% endif %}
-                {% if filters.student %}
-                <p><strong>Filtered by Student:</strong> {{ filters.student.full_name }}</p>
-                {% endif %}
-                {% if not filters.class and not filters.student %}
-                <p><strong>Filter:</strong> All classes and students within date range</p>
-                {% endif %}
-            {% endif %}
-            <p><strong>Total Records:</strong> {{ report_data|length }}</p>
-        </div>
-
-        {% if report_data %}
-        <div class="table-container">
-            <table class="report-table">
-                <thead>
-                    <tr>
-                        <th>Student Name</th>
-                        <th>Student Number</th>
-                        <th>Module</th>
-                        <th>Class Type</th>
-                        <th>Class Date</th>
-                        <th>Status</th>
-                        <th>Timestamp</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for att in report_data %}
-                    <tr>
-                        <td>{{ att.student.full_name }}</td>
-                        <td>{{ att.student.student_number }}</td>
-                        <td>{{ att.class_session.module.module_code }}</td>
-                        <td>{{ att.class_session.class_type.value }}</td>
-                        <td>{{ att.class_session.class_date }}</td>
-                        <td>
-                            <span class="status-{{ att.attendance_status.value }}">
-                                {{ att.attendance_status.value|title }}
-                            </span>
-                        </td>
-                        <td>{{ att.timestamp.strftime('%Y-%m-%d %H:%M:%S') if att.timestamp else 'N/A' }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-        {% else %}
-        <div class="empty-state">
-            <i class="fa fa-clipboard-list fa-3x"></i>
-            <h3>No Attendance Records Found</h3>
-            <p>No attendance records match your current report criteria.</p>
-            <p>Try adjusting your filters or check if there are any records available for the selected parameters.</p>
-        </div>
-        {% endif %}
-    </div>
-    {% endif %}
-</div>
-
-<!-- Hidden form for CSV export -->
-<form id="csv-export-form" method="POST" action="{{ url_for('admin_export_report_csv') }}" style="display: none;">
-    <input type="hidden" name="report_type" id="export-report-type">
-    <input type="hidden" name="class_id" id="export-class-id">
-    <input type="hidden" name="student_id" id="export-student-id">
-    <input type="hidden" name="date_from" id="export-date-from">
-    <input type="hidden" name="date_to" id="export-date-to">
-</form>
-
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const reportType = document.getElementById('report-type');
-    const classGroup = document.getElementById('class-group');
-    const studentGroup = document.getElementById('student-group');
-    const dateFromGroup = document.getElementById('date-from-group');
-    const dateToGroup = document.getElementById('date-to-group');
-    const classSelect = document.querySelector('select[name="class_id"]');
-    const studentSelect = document.querySelector('select[name="student_id"]');
-    const dateFromInput = document.querySelector('input[name="date_from"]');
-    const dateToInput = document.querySelector('input[name="date_to"]');
+    const reportScopeSelect = document.getElementById('report_scope');
+    const moduleSelect = document.getElementById('module_id');
+    const studentSelect = document.getElementById('student_id');
+    const moduleField = document.querySelector('.module-field');
+    const classField = document.querySelector('.class-field');
+    const studentField = document.querySelector('.student-field');
+    const dateRangeFields = document.querySelector('.date-range-fields');
+    const includeAllField = document.querySelector('.include-all-field');
+    const studentLoadingMsg = document.getElementById('studentLoadingMsg');
     
-    const exportForm = document.getElementById('csv-export-form');
-    const exportReportType = document.getElementById('export-report-type');
-    const exportClassId = document.getElementById('export-class-id');
-    const exportStudentId = document.getElementById('export-student-id');
-    const exportDateFrom = document.getElementById('export-date-from');
-    const exportDateTo = document.getElementById('export-date-to');
+    let isUpdatingStudents = false; // Flag to prevent multiple simultaneous updates
     
-    const exportCsvBtn = document.getElementById('export-csv-btn');
-
-    function updateFormVisibility() {
-        const type = reportType.value;
-
-        // Hide all groups first
-        classGroup.style.display = 'none';
-        studentGroup.style.display = 'none';
-        dateFromGroup.style.display = 'none';
-        dateToGroup.style.display = 'none';
-
-        // Show groups based on report type
-        if (type === 'class') {
-            classGroup.style.display = 'block';
-            // Make class required
-            classSelect.required = true;
-            studentSelect.required = false;
-            dateFromInput.required = false;
-            dateToInput.required = false;
-        } else if (type === 'student') {
-            classGroup.style.display = 'block';
-            studentGroup.style.display = 'block';
-            // Make student required, class optional
-            classSelect.required = false;
-            studentSelect.required = true;
-            dateFromInput.required = false;
-            dateToInput.required = false;
-        } else if (type === 'date') {
-            // For date range, only show date fields and optional student field
-            studentGroup.style.display = 'block';
-            dateFromGroup.style.display = 'block';
-            dateToGroup.style.display = 'block';
-            // Make dates required, student optional, hide class selection
-            classSelect.required = false;
-            studentSelect.required = false;
-            dateFromInput.required = true;
-            dateToInput.required = true;
+    function updateFieldVisibility() {
+        // Hide all fields first
+        moduleField.style.display = 'none';
+        classField.style.display = 'none';
+        studentField.style.display = 'none';
+        dateRangeFields.style.display = 'none';
+        includeAllField.style.display = 'none';
+        
+        // Show fields based on report scope
+        const reportScope = reportScopeSelect.value;
+        
+        switch(reportScope) {
+            case 'class':
+                classField.style.display = 'block';
+                break;
+                
+            case 'student':
+                moduleField.style.display = 'block';
+                studentField.style.display = 'block';
+                // Update student options when switching to student scope
+                updateStudentOptions();
+                break;
+                
+            case 'date':
+                moduleField.style.display = 'block';
+                dateRangeFields.style.display = 'grid';
+                includeAllField.style.display = 'block';
+                break;
         }
     }
-
-    // Update form visibility when type changes
-    reportType.addEventListener('change', updateFormVisibility);
     
-    // Initial setup
-    updateFormVisibility();
-
-    // Add client-side validation
-    const form = document.getElementById('report-form');
-    form.addEventListener('submit', function(e) {
-        const type = reportType.value;
+    function updateStudentOptions() {
+        const moduleId = moduleSelect ? moduleSelect.value : 0;
+        const reportScope = reportScopeSelect.value;
         
-        let isValid = true;
-        let errorMessage = '';
-        
-        if (type === 'class') {
-            if (!classSelect.value) {
-                isValid = false;
-                errorMessage = 'Please select a class for class-based report.';
-            }
-        } else if (type === 'student') {
-            if (!studentSelect.value) {
-                isValid = false;
-                errorMessage = 'Please select a student for student-based report.';
-            }
-        } else if (type === 'date') {
-            if (!dateFromInput.value || !dateToInput.value) {
-                isValid = false;
-                errorMessage = 'Please select both start and end dates for date range report.';
-            } else if (new Date(dateFromInput.value) > new Date(dateToInput.value)) {
-                isValid = false;
-                errorMessage = 'End date must be after start date.';
-            }
+        // Only update student options if we're in student report scope
+        if (reportScope !== 'student' || isUpdatingStudents) {
+            return;
         }
         
-        if (!isValid) {
-            e.preventDefault();
-            alert(errorMessage);
-            return false;
-        }
+        isUpdatingStudents = true;
+        
+        // Show loading state
+        studentLoadingMsg.style.display = 'block';
+        studentSelect.innerHTML = '<option value="">Loading students...</option>';
+        studentSelect.disabled = true;
+        
+        // Fetch enrolled students for the selected module
+        fetch(`/admin/get_enrolled_students/${moduleId}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(students => {
+                studentSelect.innerHTML = '';
+                studentSelect.disabled = false;
+                studentLoadingMsg.style.display = 'none';
+                
+                if (!Array.isArray(students) || students.length === 0) {
+                    const option = document.createElement('option');
+                    option.value = "";
+                    option.textContent = moduleId == 0 ? "No students found" : "No students enrolled in this module";
+                    studentSelect.appendChild(option);
+                } else {
+                    // Add default option
+                    const defaultOption = document.createElement('option');
+                    defaultOption.value = "";
+                    defaultOption.textContent = "Select a student";
+                    studentSelect.appendChild(defaultOption);
+                    
+                    // Add student options
+                    students.forEach(student => {
+                        const option = document.createElement('option');
+                        option.value = student.value;
+                        option.textContent = student.text;
+                        studentSelect.appendChild(option);
+                    });
+                }
+                
+                isUpdatingStudents = false;
+            })
+            .catch(error => {
+                console.error('Error fetching students:', error);
+                studentSelect.innerHTML = '<option value="">Error loading students</option>';
+                studentSelect.disabled = false;
+                studentLoadingMsg.style.display = 'none';
+                isUpdatingStudents = false;
+            });
+    }
+    
+    // Initial update
+    updateFieldVisibility();
+    
+    // Update on report scope change
+    reportScopeSelect.addEventListener('change', function() {
+        updateFieldVisibility();
     });
     
-    // CSV Export functionality
-    if (exportCsvBtn) {
-        exportCsvBtn.addEventListener('click', function() {
-            // Populate the export form with current filter values
-            exportReportType.value = reportType.value;
-            exportClassId.value = classSelect.value || '';
-            exportStudentId.value = studentSelect.value || '';
-            exportDateFrom.value = dateFromInput.value || '';
-            exportDateTo.value = dateToInput.value || '';
-            
-            // Submit the export form
-            exportForm.submit();
+    // Update student options when module changes (only for student reports)
+    if (moduleSelect) {
+        moduleSelect.addEventListener('change', function() {
+            if (reportScopeSelect.value === 'student') {
+                updateStudentOptions();
+            }
         });
     }
+    
+    // Form submission validation
+    document.getElementById('reportForm').addEventListener('submit', function(event) {
+        const reportScope = reportScopeSelect.value;
+        
+        if (reportScope === 'student') {
+            const selectedStudent = studentSelect.value;
+            const selectedModule = moduleSelect.value;
+            
+            if (!selectedStudent) {
+                event.preventDefault();
+                alert('Please select a student for the student report.');
+                return false;
+            }
+            
+            // Additional check: if a specific module is selected, ensure student is enrolled
+            if (selectedModule && selectedModule !== '0') {
+                // This validation will be handled server-side as well
+            }
+        } else if (reportScope === 'class') {
+            const selectedClass = document.getElementById('class_id').value;
+            if (!selectedClass) {
+                event.preventDefault();
+                alert('Please select a class for the class report.');
+                return false;
+            }
+        } else if (reportScope === 'date') {
+            const dateFrom = document.getElementById('date_from').value;
+            const dateTo = document.getElementById('date_to').value;
+            
+            if (!dateFrom || !dateTo) {
+                event.preventDefault();
+                alert('Please select both start and end dates for the date range report.');
+                return false;
+            }
+            
+            if (new Date(dateFrom) > new Date(dateTo)) {
+                event.preventDefault();
+                alert('End date must be after start date.');
+                return false;
+            }
+        }
+    });
 });
 </script>
 {% endblock %}

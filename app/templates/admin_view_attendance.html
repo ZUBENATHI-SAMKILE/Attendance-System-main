@@ -22,6 +22,11 @@
                 
                 <div class="filter-grid">
                     <div class="filter-group">
+                        {{ form.module_id.label }}
+                        {{ form.module_id }}
+                    </div>
+
+                    <div class="filter-group">
                         {{ form.class_id.label }}
                         {{ form.class_id }}
                     </div>
@@ -290,4 +295,49 @@
     }
 }
 </style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const moduleSelect = document.querySelector('select[name="module_id"]');
+    const classSelect = document.querySelector('select[name="class_id"]');
+    
+    // Store original class options with their module IDs as data attributes
+    const originalClassOptions = Array.from(classSelect.options).map(option => {
+        return {
+            element: option,
+            moduleId: option.getAttribute('data-module-id') || '0'
+        };
+    });
+    
+    function updateClassOptions() {
+        const selectedModuleId = moduleSelect.value;
+        
+        // Clear current options except the first one
+        while (classSelect.options.length > 1) {
+            classSelect.remove(1);
+        }
+        
+        // If "All Modules" is selected, show all classes
+        if (selectedModuleId === '0') {
+            originalClassOptions.forEach(item => {
+                if (item.element.value !== '0') {
+                    classSelect.add(new Option(item.element.text, item.element.value));
+                }
+            });
+        } else {
+            // Filter classes by selected module using data attributes
+            originalClassOptions.forEach(item => {
+                if (item.element.value !== '0' && item.moduleId === selectedModuleId) {
+                    classSelect.add(new Option(item.element.text, item.element.value));
+                }
+            });
+        }
+    }
+    
+    moduleSelect.addEventListener('change', updateClassOptions);
+    
+    // Initial update
+    updateClassOptions();
+});
+</script>
 {% endblock %}

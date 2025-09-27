@@ -19,4 +19,10 @@ login_manager.init_app(app)
 login_manager.login_view = 'login'
 from app import models, routes  # Import models and routes
 
+@app.template_filter('format_time')
+def format_time_filter(time_obj):
+    if time_obj:
+        return time_obj.strftime('%H:%M')
+    return 'N/A'
+
 
