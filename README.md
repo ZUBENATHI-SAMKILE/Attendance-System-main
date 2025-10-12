@@ -1,6 +1,7 @@
 🎓 Face Recognition Attendance System for Students
 
-Live :https://attendance-system-main-1-fcvz.onrender.com
+Live Demo :https://attendance-system-main-1-fcvz.onrender.com 
+Only can run after sql is connected .
 
 📘 Project Overview
 
