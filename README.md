@@ -45,6 +45,7 @@ This system was developed to:
 - Database	SQL and SQLite 
 - Face Recognition	face_recognition Python library (uses dlib)
 - Frontend	HTML, CSS, and Javascript
+- OpenCv
 - IDE	 VS Code
 - Language	Python 
 
