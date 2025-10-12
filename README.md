@@ -50,7 +50,7 @@ This system was developed to:
 
 - How to Run the Project
 1. Clone the Repository
-git clone https://github.com/yourusername/FaceRecognitionAttendance.git
+git clone https://github.com/ZUBENATHI-SAMKILE/Attendance-System-main.git
 cd FaceRecognitionAttendance
 
  2.Install Dependencies
