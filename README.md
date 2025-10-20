@@ -40,7 +40,7 @@ Only can run after sql is connected .
 - Flask Web Interface
 1. Simple, user-friendly dashboard for lecturers and admins to view attendance data.
 
-🧩 Tech Stack
+# Tech Stack
 
 - Backend Framework	Flask (Python)
 - Database	SQL and SQLite 
@@ -50,7 +50,7 @@ Only can run after sql is connected .
 - IDE	 VS Code
 - Language	Python 
 
-- How to Run the Project
+# How to Run the Project
 1. Clone the Repository
 git clone https://github.com/ZUBENATHI-SAMKILE/Attendance-System-main.git
 cd FaceRecognitionAttendance
@@ -67,7 +67,7 @@ Open your browser and go to:
 
 http://127.0.0.1:5000
 
-- Usage
+# Usage
 
 1. Register Students — Add student details and capture their face data. 
 
