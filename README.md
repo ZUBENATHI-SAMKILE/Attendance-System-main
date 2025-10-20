@@ -7,8 +7,8 @@ Only can run after sql is connected .
 
 -The Face Recognition Attendance System is a Flask-based web application designed to automate student attendance tracking using face recognition technology.
 - It aims to minimize absenteeism, reduce manual errors, and help lecturers monitor class participation efficiently.
-This system addresses the challenge of unreliable manual attendance systems and leverages AI-powered face detection
-and recognition to ensure secure, tamper-proof attendance recording.
+- This system addresses the challenge of unreliable manual attendance systems and leverages AI-powered face detection
+- and recognition to ensure secure, tamper-proof attendance recording.
 
 🧠 Motivation
 High student absenteeism contributes significantly to low academic performance and drop-out rates in universities.
