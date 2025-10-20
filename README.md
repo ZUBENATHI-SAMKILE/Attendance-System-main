@@ -1,12 +1,12 @@
-🎓 Face Recognition Attendance System for Students
+## 🎓 Face Recognition Attendance System for Students
 
 Live Demo :https://attendance-system-main-1-fcvz.onrender.com 
 Only can run after sql is connected .
 
-📘 Project Overview
+#  Project Overview
 
-The Face Recognition Attendance System is a Flask-based web application designed to automate student attendance tracking using face recognition technology.
-It aims to minimize absenteeism, reduce manual errors, and help lecturers monitor class participation efficiently.
+-The Face Recognition Attendance System is a Flask-based web application designed to automate student attendance tracking using face recognition technology.
+- It aims to minimize absenteeism, reduce manual errors, and help lecturers monitor class participation efficiently.
 This system addresses the challenge of unreliable manual attendance systems and leverages AI-powered face detection
 and recognition to ensure secure, tamper-proof attendance recording.
 
