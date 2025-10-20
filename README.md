@@ -20,12 +20,12 @@ Only can run after sql is connected .
 - Eliminate human intervention and manipulation.
 - Provide real-time attendance data for lecturers and administrators.
 
-⚙️ System Features
+# System Features
 - Face Recognition Attendance
 1. Automatically detects and identifies student faces using a camera.
 2. Marks attendance in real-time without manual input.
 
-- User Authentication
+# User Authentication
 
 1. Secure login for lecturers and admins.
 2. Role-based access to attendance data.
