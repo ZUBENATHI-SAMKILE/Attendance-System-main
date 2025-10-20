@@ -77,7 +77,7 @@ http://127.0.0.1:5000
 
 4. View Records — Lecturers can log in to check daily/weekly attendance and allocate participation marks.
 
-🔒 Security
+# Security
 
 - Dut students email only allowed for registration.
 - Attendance data cannot be altered manually.
